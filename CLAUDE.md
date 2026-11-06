@@ -5,9 +5,6 @@
   Anthropic SDK are all fine).
 - Commit small and often with clear messages. One giant final commit can get us disqualified.
   Keep an AI_USAGE.md noting how AI tooling helped.
-- UPDATE STATUS.md WITH EVERY PUSH. It is the living checklist of what is done, what is blocked,
-  and what each person can start. Tick your boxes, add anything you finished, and update the
-  "Last updated" line. Never push without touching it.
 - Do NOT change any shared interface (JSON shapes in shared/types.ts, the contract ABI, config
   values in shared/config.ts) without telling the other two. These are the source of truth.
 - Network is Ethereum Sepolia, token is USDC. Never mainnet.
