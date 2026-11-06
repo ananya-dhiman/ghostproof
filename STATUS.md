@@ -6,7 +6,7 @@ blocked, and what each person can start right now.
 > **This file lives on the `a-contracts` branch only — it is deliberately not on `main`.**
 > Do not merge `a-contracts` into `main` without Person A's explicit go-ahead.
 
-- **Last updated:** 2026-11-06 ~20:45 IST, by Person A
+- **Last updated:** 2026-11-06 ~21:00 IST, by Person A
 - **Submissions close:** Sat 2026-11-07, 09:00 IST (partner judging 09:30–12:30)
 
 ---
@@ -38,12 +38,13 @@ hardcode.**
 - [x] **Tests: 5/5 passing** (forge 1.9.0 — see "Verified" below)
 - [x] `shared/abis/*.json` — compiled ABIs committed, so **B and C do not need Foundry**
 - [x] **Deployed and seeded on Sepolia**, addresses filled into `shared/config.ts`
+- [x] **Settler decided:** Person B's backend uses the same throwaway deployer wallet, so no
+      on-chain change is needed. Person A sends B the key from `contracts/.env` directly.
+      (If time allows later, switch to `pool.setSettler(<B's own address>)` — cleaner for judges.)
+- [x] `shared/config.ts` with the live addresses is now on `main` (that file only)
 
 ## Blocked / in progress
 
-- [ ] **Settler must be repointed to Person B's backend address** once B has one —
-      Person A runs `pool.setSettler(<B's address>)`. Until then only the deployer wallet can
-      call `settleReport`. (Simplest alternative for the demo: B uses the same throwaway key.)
 - [ ] Backend (`backend/`) — *Person B, not started*
 - [ ] Frontend (`frontend/`) — *Person C, not started*
 - [ ] Judge docs: `/arkiv/*.md`, World integration debrief, `AI_USAGE.md`, 3-min video
@@ -87,8 +88,8 @@ Get your **own** free Alchemy/Infura Sepolia key — your fork runner will rate-
 Nothing is blocking you. Branch: `git checkout main && git pull && git checkout -b c-frontend`
 
 - ABIs are in `shared/abis/` — import them directly, **no Foundry needed**.
-- Real deployed addresses are in `shared/config.ts` (note: that file is updated on
-  `a-contracts`; ask Person A for the values until it reaches `main`).
+- Real deployed addresses are in `shared/config.ts` — **now on `main`**, so a `git pull` gives
+  you the live values. Read them from that file, never hardcode.
 - Three screens per `PLAN.md` → "Person C": company, hacker, public record.
 - Company screen calls `addBonus(bytes32 id, uint256 amount)` (owner only) and reads
   `getConfig()` / `reports(id)`.
