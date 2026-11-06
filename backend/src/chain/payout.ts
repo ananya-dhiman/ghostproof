@@ -49,7 +49,12 @@ export async function settlePayout(
   });
 
   const txHash = await walletClient().writeContract(request);
-  await publicClient().waitForTransactionReceipt({ hash: txHash });
+  const receipt = await publicClient().waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") {
+    // viem does not throw on an on-chain revert — guard so we never report a
+    // base-paid status for a transaction that actually reverted.
+    throw new Error(`settleReport reverted (tx ${txHash})`);
+  }
 
   const paidRaw = typeof result === "bigint" ? result : 0n;
   return {

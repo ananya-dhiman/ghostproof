@@ -12,7 +12,8 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke.ts",
-    "arkiv-smoke": "tsx scripts/arkiv-smoke.ts"
+    "arkiv-smoke": "tsx scripts/arkiv-smoke.ts",
+    "ai-smoke": "tsx scripts/ai-smoke.ts"
   },
   "dependencies": {
     "@arkiv-network/sdk": "^1.0.1",
