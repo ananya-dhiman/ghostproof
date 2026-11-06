@@ -235,13 +235,43 @@ function ReportDetail({ env, pool, demo }: { env: ReportEnvelope; pool: Pool; de
           {env.payout && !demo && (
             <span className="mono" style={{ fontSize: "0.75rem" }}>
               payout tx <a href={sepoliaTx(env.payout.txHash)} target="_blank" rel="noreferrer" className="code">{short(env.payout.txHash, 10, 8)} ↗</a>
-              {env.arkiv?.url && (
+              {env.arkiv?.entityKey && (
                 <>
-                  {" · "}<a href={env.arkiv.url} target="_blank" rel="noreferrer" className="code">public record ↗</a>
+                  {" · "}Arkiv entity{" "}
+                  {env.arkiv.url ? (
+                    <a href={env.arkiv.url} target="_blank" rel="noreferrer" className="code">{short(env.arkiv.entityKey, 10, 8)} ↗</a>
+                  ) : (
+                    <span className="code" title={env.arkiv.entityKey}>{short(env.arkiv.entityKey, 10, 8)}</span>
+                  )}
                 </>
               )}
             </span>
           )}
+
+          {/* The machine output the payout was decided on. Shown in full so the
+              company can re-run the same check itself rather than trust our prose. */}
+          <details className="mono" style={{ fontSize: "0.72rem", marginTop: 4 }}>
+            <summary style={{ cursor: "pointer" }}>
+              Raw checker output — the measurement the payout was based on
+            </summary>
+            <pre
+              style={{
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+                margin: "8px 0 0",
+                padding: 12,
+                border: "1px solid var(--ink)",
+                maxHeight: 280,
+                overflow: "auto",
+              }}
+            >
+{JSON.stringify({ checker: c, payout: env.payout, arkiv: env.arkiv }, null, 2)}
+            </pre>
+            <span style={{ display: "block", marginTop: 6, opacity: 0.8 }}>
+              Deterministic: re-running this exploit against the same fork block yields the same
+              numbers. Nothing here was written by a model.
+            </span>
+          </details>
         </div>
       </div>
 
