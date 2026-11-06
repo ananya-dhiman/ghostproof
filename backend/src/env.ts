@@ -44,7 +44,10 @@ export const env = {
   // free models). The model only describes the already-measured result; it
   // never decides what gets paid.
   openRouterApiKey: str("OPENROUTER_API_KEY"),
-  openRouterModel: str("OPENROUTER_MODEL", "deepseek/deepseek-chat-v3-0324:free"),
+  // "auto-free" = let OpenRouter choose among whatever free models are currently
+  // available (robust against individual free models being rate-limited). Set a
+  // specific slug here to pin one instead.
+  openRouterModel: str("OPENROUTER_MODEL", "auto-free"),
   aiTimeoutMs: num("AI_TIMEOUT_MS", 30_000),
 
   worldAppId: str("WORLD_APP_ID"),

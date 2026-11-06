@@ -19,6 +19,42 @@ import { cannedReport } from "./fallback.js";
 import { ReportSchema } from "./schema.js";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
+
+/** A small hardcoded fallback in case the live free-model list can't be fetched. */
+const FREE_FALLBACK = [
+  "google/gemma-4-31b-it:free",
+  "google/gemma-4-26b-a4b-it:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+];
+
+let freeModelsCache: string[] | null = null;
+
+/**
+ * Current free model slugs, fetched once per process. OpenRouter rotates which
+ * free models exist, so we discover them rather than pin one. The result feeds
+ * the request's `models` fallback list, so OpenRouter routes to whichever free
+ * model is available and skips rate-limited ones automatically.
+ */
+async function getFreeModels(signal: AbortSignal): Promise<string[]> {
+  if (freeModelsCache) return freeModelsCache;
+  try {
+    const res = await fetch(OPENROUTER_MODELS_URL, {
+      headers: { authorization: `Bearer ${env.openRouterApiKey}` },
+      signal,
+    });
+    const body = (await res.json()) as {
+      data?: { id: string; pricing?: { prompt?: string } }[];
+    };
+    const free = (body.data ?? [])
+      .filter((m) => m.id.endsWith(":free") && m.pricing?.prompt === "0")
+      .map((m) => m.id);
+    freeModelsCache = free.length ? free : FREE_FALLBACK;
+  } catch {
+    freeModelsCache = FREE_FALLBACK;
+  }
+  return freeModelsCache;
+}
 
 /** JSON schema for the five report fields (OpenAI-style structured output). */
 const jsonSchema = {
@@ -84,6 +120,17 @@ export async function generateReport(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), env.aiTimeoutMs);
   try {
+    // "auto-free" → let OpenRouter pick among the currently-free models (and
+    // fall through rate-limited ones). Otherwise pin the configured slug.
+    const autoFree = env.openRouterModel === "auto-free";
+    // OpenRouter's `models` fallback list is capped at 3 entries.
+    const freeModels = autoFree
+      ? (await getFreeModels(controller.signal)).slice(0, 3)
+      : [];
+    const routing = autoFree
+      ? { model: freeModels[0], models: freeModels }
+      : { model: env.openRouterModel };
+
     const res = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: {
@@ -92,7 +139,7 @@ export async function generateReport(
         "x-title": "Ghostproof",
       },
       body: JSON.stringify({
-        model: env.openRouterModel,
+        ...routing,
         messages: [
           {
             role: "system",
