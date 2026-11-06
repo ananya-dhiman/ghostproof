@@ -1,107 +1,127 @@
-# Project status — living checklist
+# Ghostproof — Contracts (Person A) progress
 
-**Update this file with every push.** It is the one place to see what is finished, what is
-blocked, and what each person can start right now.
+**Living status of the `a-contracts` branch.** Person B's and Person C's Claude: read this when
+you pull or reference this branch — it tells you what the contracts provide, what is deployed, and
+what is still needed from you. Updated on every push to `a-contracts`.
 
-> **This file lives on the `a-contracts` branch only — it is deliberately not on `main`.**
+Read it with: `git show origin/a-contracts:STATUS.md`
+
+> This file lives on `a-contracts` only — deliberately not on `main`.
 > Do not merge `a-contracts` into `main` without Person A's explicit go-ahead.
 
-- **Last updated:** 2026-11-06 ~21:00 IST, by Person A
+- **Last updated:** 2026-11-06 ~21:15 IST — deployed to Sepolia; cross-checked against `b-backend`
+- **Owner:** Person A (contracts), Solidity/Foundry, folder `/contracts`
 - **Submissions close:** Sat 2026-11-07, 09:00 IST (partner judging 09:30–12:30)
 
 ---
 
-## Deployed addresses — Ethereum Sepolia (live)
+## Deployed addresses — Ethereum Sepolia (LIVE)
 
 | What | Address |
 |---|---|
 | MockUSDC (6 decimals) | `0xbbE04C8bE88dE0aa2229356986E6fB44f59ABeB9` |
 | VulnerableVault | `0x8ec3c18f93490eAdb94d08a2C46d864a37B5A979` |
 | BountyPool | `0x5Dc887D6Ee53a809fcEB66Fd5799F3C18f8A3488` |
-| Owner (company) + settler | `0xBCB67d6902e584f703473fC3297d2a9970BA3B20` |
+| Owner (company) **and settler** | `0xBCB67d6902e584f703473fC3297d2a9970BA3B20` |
 
-Verified on-chain: vault holds **1000 USDC**, pool holds **2000 USDC**, auto-pay limit **50**,
-tiers **50 / 200 / 500**. Addresses are in `shared/config.ts` — **read them from there, never
-hardcode.**
+Verified by reading the chain: vault holds **1000 USDC**, pool holds **2000 USDC**, auto-pay limit
+**50**, tiers **50 / 200 / 500**.
+
+**These are on `main` now** (only `shared/config.ts` was copied over) — `git pull` and read them
+from `shared/config.ts`. Never hardcode.
 
 **Working RPC:** `https://ethereum-sepolia-rpc.publicnode.com`
-(`rpc.sepolia.org` and `1rpc.io/sepolia` were dead; `sepolia.drpc.org` is now paid-only.)
+`rpc.sepolia.org` and `1rpc.io/sepolia` are dead; `sepolia.drpc.org` is paid-only. publicnode is
+load-balanced and occasionally returns a transient "block not found" — just retry.
 
 ---
 
-## Done
+## ✅ Answers to Person B's action items
+
+1. **`setSettler` is NOT needed — decision made.** Person B's backend uses the **same throwaway
+   wallet** that owns the pool (`0xBCB6…3B20`), which is already the settler. Person A sends B the
+   `PRIVATE_KEY` + `SEPOLIA_RPC_URL` directly (out of band, never in the repo). Safe only because
+   it is a disposable testnet wallet holding worthless test coins.
+   *If there is spare time later we can switch to `pool.setSettler(<B's own wallet>)`, which reads
+   better to a judge — one transaction, ~10 seconds. Tell A the address and it's done.*
+2. **Deploy + addresses: done** (table above), and `shared/config.ts` on `main` has them.
+3. **Vendored contracts: verified IN SYNC** as of this push. I diffed `main:contracts/src/*`
+   against `b-backend:backend/sandbox-template/src/*` — `VulnerableVault.sol`, `IERC20.sol`,
+   `MockUSDC.sol`, `Rules.sol` all match byte-for-byte. **No contract has changed since the PR #1
+   merge, and A will tell B before changing one.**
+
+## ⚠️ One inconsistency found in `b-backend` — Person B please fix
+
+`shared/types.ts` on `b-backend` documents `exploitSource` as:
+> *"Full text of Exploit.t.sol. Must expose `function runExploit() external`."*
+
+but `backend/STATUS.md` says the entry point is **`run(VulnerableVault vault)`** and the guard
+enforces `run(`. The code and A's `ExploitDrain` both use **`run(VulnerableVault)`** — so the doc
+comment is stale. It matters because Person C will show submitters what to write. **The correct
+signature is `function run(VulnerableVault vault) external`.**
+
+---
+
+## ✅ Done (Person A)
 
 - [x] Repo scaffold, folder ownership, branch-per-person rules (`CLAUDE.md`)
 - [x] `PLAN.md` — work split, interfaces, demo script
-- [x] `shared/types.ts` — the JSON shapes between backend and frontend (**frozen**)
-- [x] Contracts: `VulnerableVault`, `BountyPool`, `Rules`, `MockUSDC`
+- [x] Contracts: `VulnerableVault`, `BountyPool`, `Rules`, `MockUSDC`, `IERC20`
 - [x] **Tests: 5/5 passing** (forge 1.9.0 — see "Verified" below)
-- [x] `shared/abis/*.json` — compiled ABIs committed, so **B and C do not need Foundry**
-- [x] **Deployed and seeded on Sepolia**, addresses filled into `shared/config.ts`
-- [x] **Settler decided:** Person B's backend uses the same throwaway deployer wallet, so no
-      on-chain change is needed. Person A sends B the key from `contracts/.env` directly.
-      (If time allows later, switch to `pool.setSettler(<B's own address>)` — cleaner for judges.)
-- [x] `shared/config.ts` with the live addresses is now on `main` (that file only)
+- [x] `shared/abis/*.json` — compiled ABIs committed, so **B and C need no Foundry**
+- [x] **Deployed and seeded on Sepolia**; addresses in `shared/config.ts` on `main`
+- [x] **Settler decided** — B reuses the deployer wallet; no on-chain change needed
+- [x] Cross-checked `b-backend`: vendored contracts in sync, types diff reviewed
 
-## Blocked / in progress
+## ⬜ Open — Person A
 
-- [ ] Backend (`backend/`) — *Person B, not started*
-- [ ] Frontend (`frontend/`) — *Person C, not started*
-- [ ] Judge docs: `/arkiv/*.md`, World integration debrief, `AI_USAGE.md`, 3-min video
+| Item | Blocked on |
+|---|---|
+| Send B the `PRIVATE_KEY` + `SEPOLIA_RPC_URL` | **Person A** — out-of-band message, not the repo |
+| Decide whether B's `shared/types.ts` goes to `main` so C can use it | **Person A** — see below |
+| `/arkiv/friction.md` + `/arkiv/reach.md` (B wrote the other two) | nothing — A can write these now |
+| Optional: `setSettler(<B's own wallet>)` | B providing an address |
+
+**Decision pending on `shared/types.ts`:** B extended it on `b-backend` (+112 lines) with the
+HTTP-contract types, added `exploitSource: string` to `Submission`, made
+`ArkivReportRecord.severity` nullable, and added `fallback?: boolean` to `EvidenceReport`. The
+changes are additive and B's code depends on them, and **C needs them to build against B's API** —
+but `main` still has A's original. Options: copy just that one file to `main` (the same trick used
+for `config.ts`), or leave C to read it from `b-backend`.
 
 ---
 
-## What Person B can start NOW
-
-Nothing is blocking you. Branch: `git checkout main && git pull && git checkout -b b-backend`
-
-1. **Fork runner** — `anvil --fork-url https://ethereum-sepolia-rpc.publicnode.com`, run the
-   submitted exploit from a fresh account, read USDC balances before/after. Working reference:
-   `contracts/test/Exploit.t.sol` does exactly this shape (snapshot balance → run exploit →
-   evaluate rule).
-2. **Produce `CheckerResult`** (`shared/types.ts`) — `verified:false` means stop, the company
-   never sees it.
-3. **Evidence report** — one Claude call, `messages.parse()` + a Zod schema. Model
-   `claude-haiku-5-5`; see `PLAN.md` → "The AI call" for working code.
-4. **Payout** — use `shared/abis/BountyPool.json`. Call sequence:
-   - `settleReport(bytes32 id, address hacker, uint8 severity, bytes sig)` — **you must be the
-     `settler`** (see the blocked item above); pays the capped base, locks the pool. Returns the
-     amount paid. Pass `"0x"` for `sig` (reserved for a future signature check).
-   - `closeReport(bytes32 id)` — when resolved, unlocks the pool.
-   - Read config with `getConfig()` → `(autoPayLimit, monthlyCap, medium, high, critical)`.
-5. **Severity is a uint8:** `1 = Medium, 2 = High, 3 = Critical`. Automatic base =
-   `min(tierAmount[severity], autoPayLimit)`.
-6. **Arkiv** — write `ArkivReportRecord` (`shared/types.ts`). Set an `expiresIn` so an unanswered
-   report expires; that is our response deadline.
-
-**You need Foundry** (for `anvil`). `foundryup` works but is very slow on the venue wifi — it took
-~45 min. Faster: download the release binary directly:
-```bash
-gh release download stable --repo foundry-rs/foundry --pattern 'foundry_stable_win32_amd64.zip' --dir ~/fdl
-cd ~/fdl && unzip -o foundry_stable_win32_amd64.zip && mkdir -p ~/.foundry/bin && cp *.exe ~/.foundry/bin/
-export PATH="$HOME/.foundry/bin:$PATH" && forge --version
-```
-Get your **own** free Alchemy/Infura Sepolia key — your fork runner will rate-limit a public RPC.
-
 ## What Person C can start NOW
 
-Nothing is blocking you. Branch: `git checkout main && git pull && git checkout -b c-frontend`
+- ABIs in `shared/abis/` — import directly, **no Foundry needed**.
+- Live addresses in `shared/config.ts` on `main` — `git pull`.
+- Need demo USDC in a wallet? MockUSDC has an **open `mint(address,uint256)`** — anyone can call
+  it, no permission. Mint yourself test USDC freely.
+- On-chain report id is **`keccak256(reportId)`** (UTF-8 bytes) — use the same for `addBonus` and
+  `reports(id)` as B uses for `settleReport`, or you will read the wrong slot.
+- Company screen: `addBonus(bytes32 id, uint256 amount)` is **owner-only** — it must be sent from
+  `0xBCB6…3B20`. Reads (`getConfig()`, `reports(id)`) are open to anyone.
 
-- ABIs are in `shared/abis/` — import them directly, **no Foundry needed**.
-- Real deployed addresses are in `shared/config.ts` — **now on `main`**, so a `git pull` gives
-  you the live values. Read them from that file, never hardcode.
-- Three screens per `PLAN.md` → "Person C": company, hacker, public record.
-- Company screen calls `addBonus(bytes32 id, uint256 amount)` (owner only) and reads
-  `getConfig()` / `reports(id)`.
-- World ID: widget on the client, `verifyCloudProof` on a **backend** route — never trust the
-  browser. Block a second submission from the same `nullifier`.
-- Need demo USDC in a wallet? MockUSDC has an open `mint(address,uint256)` — anyone can call it.
+## Contract surface (quick reference)
+
+| Function | Who can call | Notes |
+|---|---|---|
+| `settleReport(bytes32 id, address hacker, uint8 severity, bytes sig)` | settler | pays `min(tier, limit)`, locks pool, returns amount. `sig` reserved — pass `"0x"` |
+| `addBonus(bytes32 id, uint256 amount)` | owner | the company's optional extra |
+| `closeReport(bytes32 id)` | settler | unlocks the pool |
+| `getConfig()` | anyone | `(autoPayLimit, monthlyCap, medium, high, critical)` |
+| `reports(bytes32 id)` | anyone | `(status, hacker, severity, basePaid, bonus, closed)` |
+| `fundPool` / `withdrawPool` | owner | withdraw reverts while a report is open |
+| `setSettler` / `setConfig` / `setTier` | owner | |
+| `mint(address,uint256)` on MockUSDC | **anyone** | test token, mint freely |
+
+Severity is a **uint8 on-chain**: `1 = Medium, 2 = High, 3 = Critical`.
 
 ---
 
 ## Verified (so nobody re-checks)
 
-Run from `contracts/`: `forge build && forge test -vv` (forge 1.9.0)
+From `contracts/`: `forge build && forge test -vv` (forge 1.9.0)
 
 ```
 test_drainBreaksNoTheft         PASS  exploit drains 1000 USDC, no-theft rule fires Critical
@@ -111,15 +131,15 @@ test_poolLockedWhileReportOpen  PASS  withdraw reverts while open, succeeds afte
 test_onlySettlerCanSettle       PASS  only the checker backend can settle
 5 passed; 0 failed
 ```
-Also compiles clean under solc 0.8.28 — 0 errors, 0 warnings. Remaining `forge build` output is
-style lint only (immutable naming, modifier wrapping) — cosmetic, not bugs.
+Also clean under solc 0.8.28 — 0 errors, 0 warnings. Remaining `forge build` output is style lint
+only (immutable naming, modifier wrapping) — cosmetic.
 
-## Demo numbers (keep these consistent everywhere)
+## Demo numbers (keep consistent everywhere)
 
 | Thing | Value |
 |---|---|
 | Chain | Ethereum Sepolia (chain ID 11155111) |
-| Token | MockUSDC, 6 decimals, we mint it — **no USDC faucet needed** |
+| Token | MockUSDC, 6 decimals, open mint — **no USDC faucet needed** |
 | Pool funded | 2000 USDC |
 | Auto-pay limit | 50 USDC per report |
 | Tiers | Medium 50, High 200, Critical 500 |
@@ -129,7 +149,8 @@ style lint only (immutable naming, modifier wrapping) — cosmetic, not bugs.
 ## Known shortcuts (state these in the README/demo, don't hide them)
 
 - The checker runs on one server, standing in for a sealed computer (TEE).
-- `settleReport` trusts the authorised `settler` address; the `sig` argument is reserved for a
-  real signature check in production.
-- `contracts/lib/`, `contracts/out/`, `contracts/cache/`, `contracts/broadcast/` and `.env` are
-  gitignored. Note `cache/` holds the deploy key — never force-add it.
+- `settleReport` trusts the authorised `settler` address; `sig` is reserved for a real signature
+  check in production.
+- Company and settler are the same wallet in the demo (they would be separate in production).
+- `contracts/lib/`, `out/`, `cache/`, `broadcast/` and `.env` are gitignored. `cache/` holds the
+  deploy key — never force-add it.
