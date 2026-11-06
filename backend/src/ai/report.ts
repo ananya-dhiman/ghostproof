@@ -79,20 +79,24 @@ export async function generateReport(
     return cannedReport(checker);
   }
 
+  // Hard timeout that actually cancels the request (frees the socket so the
+  // process isn't held open, and so a slow model never lingers).
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), env.aiTimeoutMs);
   try {
-    // Race the call against a hard timeout so the demo never hangs on a model.
-    const call = getClient().models.generateContent({
+    const res = await getClient().models.generateContent({
       model: env.geminiModel,
       contents: buildPrompt(checker, exploitSource),
       config: {
         responseMimeType: "application/json",
         responseSchema,
+        // The report is short and grounded — no reasoning needed. Disabling
+        // thinking makes a flash model answer in a couple of seconds instead of
+        // tens, which keeps the demo snappy.
+        thinkingConfig: { thinkingBudget: 0 },
+        abortSignal: controller.signal,
       },
     });
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("gemini timeout")), env.aiTimeoutMs),
-    );
-    const res = await Promise.race([call, timeout]);
 
     const text = res.text;
     if (!text) {
@@ -110,5 +114,7 @@ export async function generateReport(
   } catch (err) {
     console.error("[ai] report generation failed; using fallback:", err);
     return cannedReport(checker);
+  } finally {
+    clearTimeout(timer);
   }
 }

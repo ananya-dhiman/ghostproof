@@ -65,10 +65,14 @@ async function run(
   store.setChecker(reportId, outcome.checker);
   store.setStatus(reportId, "verified");
 
-  // Step 10: evidence report — one grounded Claude call (claude-haiku-5-5),
-  // falling back to the canned report on any failure or timeout so the pipeline
-  // never hangs on a model.
-  store.setEvidence(reportId, await generateReport(outcome.checker, exploitSource));
+  // Step 10: evidence report — one grounded Gemini call, generated in the
+  // BACKGROUND so a slow model never delays the payout. It fills into the
+  // envelope whenever it returns; the frontend polls and shows it then.
+  // generateReport never throws (it falls back to the canned report), but we
+  // guard anyway.
+  void generateReport(outcome.checker, exploitSource)
+    .then((report) => store.setEvidence(reportId, report))
+    .catch((err: unknown) => console.error(`[pipeline] ${reportId} report error:`, err));
 
   // Step 11: automatic base payout. Only when a rule the company wrote in
   // advance was broken, and only if the chain is actually wired up. If the
