@@ -7,6 +7,8 @@
  */
 import { runChecker } from "../checker/index.js";
 import { generateReport } from "../ai/report.js";
+import { chainReady } from "../chain/clients.js";
+import { settlePayout } from "../chain/payout.js";
 import { env } from "../env.js";
 import * as store from "../store.js";
 import type { ArkivRecord, SubmissionMetadata } from "../types.js";
@@ -67,23 +69,51 @@ async function run(
   // never hangs on a model.
   store.setEvidence(reportId, await generateReport(outcome.checker, exploitSource));
 
-  // Step 11: payout. B4 calls the BountyPool settler here when a rule broke.
-  // TODO(B4): settleReport(hacker, severity) on A's BountyPool, wait for receipt.
+  // Step 11: automatic base payout. Only when a rule the company wrote in
+  // advance was broken, and only if the chain is actually wired up. If the
+  // contracts aren't deployed yet (or no key), we leave the report "verified"
+  // with payout pending rather than failing — a visible, honest state.
+  let paidUsdc = 0;
+  if (outcome.checker.ruleBroken && outcome.checker.severity) {
+    const ready = chainReady();
+    if (!ready.ok) {
+      console.log(`[pipeline] ${reportId} payout skipped: ${ready.reason}`);
+    } else {
+      try {
+        const payout = await settlePayout(
+          reportId,
+          meta.hackerAddress as `0x${string}`,
+          outcome.checker.severity,
+        );
+        paidUsdc = payout.paidUsdc;
+        store.setPayout(reportId, { txHash: payout.txHash, paidUsdc });
+        store.setStatus(reportId, "base-paid");
+        console.log(`[pipeline] ${reportId} paid ${paidUsdc} USDC (${payout.txHash})`);
+      } catch (err) {
+        // A payout failure must not lose the verified finding.
+        console.error(`[pipeline] ${reportId} payout failed:`, err);
+      }
+    }
+  }
 
-  // Step 12: public record. B6 writes this to Arkiv; for now mirror it locally
-  // so GET /records works end to end.
-  if (outcome.checker.ruleBroken) {
+  // Step 12: public record — written once the base has actually been paid, so
+  // the public track record only ever shows real outcomes. A verified finding
+  // that hasn't been paid yet (chain not wired) stays "verified" with no record.
+  // B6 writes this to Arkiv; the local mirror is the fallback so GET /records
+  // always works.
+  if (outcome.checker.ruleBroken && paidUsdc > 0) {
     const record: ArkivRecord = {
       bountyId: meta.bountyId,
       reportId,
       exploitHash,
       severity: outcome.checker.severity,
       valueMovedUsdc: outcome.checker.valueMovedUsdc,
-      status: "base-paid", // becomes real once B4 pays; placeholder for now
-      paidUsdc: 0, // TODO(B4): the actual base paid
+      status: "base-paid",
+      paidUsdc,
       bonusUsdc: 0,
       createdAt: Math.floor(Date.now() / 1000),
     };
     store.mirrorArkivRecord(record);
+    // TODO(B6): also write this to Arkiv (rabdi) with an expiresIn.
   }
 }

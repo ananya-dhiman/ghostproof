@@ -13,6 +13,7 @@ import cors from "cors";
 import express from "express";
 import { describeBoot, env } from "./env.js";
 import { healthRouter } from "./routes/health.js";
+import { poolRouter } from "./routes/pool.js";
 import { recordsRouter } from "./routes/records.js";
 import { reportRouter } from "./routes/report.js";
 import { submitRouter } from "./routes/submit.js";
@@ -28,6 +29,7 @@ app.use(healthRouter);
 app.use(submitRouter);
 app.use(reportRouter);
 app.use(recordsRouter);
+app.use(poolRouter);
 app.use(worldIdRouter);
 
 app.use((_req, res) => {
