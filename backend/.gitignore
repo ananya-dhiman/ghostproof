@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.local
+# the root .gitignore has `.env.*`, which would also hide the template — keep it tracked
+!.env.example
+
+# per-submission sandbox directories created by the checker
+runs/
+
+# foundry build output, if a sandbox is left behind
+out/
+cache/
+broadcast/
+
+*.log
+.DS_Store
