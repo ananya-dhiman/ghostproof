@@ -1,5 +1,8 @@
 # Ghostproof frontend (Person C)
 
+> **Progress checklist:** see [PROGRESS.md](PROGRESS.md). It lists what's done, what the frontend
+> expects from Person A / B, and what's next, and it's updated on every push.
+
 Next.js 15 + React 19, wagmi/viem for Sepolia, World IDKit for proof-of-human. Neo-brutalist
 yellow/black theme with hand-drawn SVG ghost stickers (`src/components/Ghost.tsx`).
 
