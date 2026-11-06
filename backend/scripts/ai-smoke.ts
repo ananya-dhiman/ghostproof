@@ -31,9 +31,9 @@ async function main() {
   console.log("Generating evidence report via OpenRouter...");
   const report = await generateReport(sample, exploitSrc);
   console.log("fallback:", report.fallback === true ? "true (canned)" : "false (LIVE)");
-  console.log("summary :", report.summary);
-  console.log("steps   :", report.steps.length, "step(s)");
-  console.log("severity:", report.suggestedSeverity);
+  console.log("\n--- full evidence report ---");
+  console.log(JSON.stringify(report, null, 2));
+  console.log("----------------------------\n");
   if (report.fallback) {
     console.log("\n(Used the canned fallback — set OPENROUTER_API_KEY, or the live call failed; see logs above.)");
   } else {

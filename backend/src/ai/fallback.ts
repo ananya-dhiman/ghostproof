@@ -1,10 +1,13 @@
 /**
  * The canned evidence report.
  *
- * This exists so the demo never hangs on a model call. If the Anthropic request
- * is slow, rate-limited or the key is missing, we serve this instead and mark
- * it `fallback: true` — the UI shows that honestly rather than passing a
- * template off as a live write-up.
+ * This exists so the demo never hangs on a model call. If the model request is
+ * slow, rate-limited or the key is missing, we serve this instead and mark it
+ * `fallback: true` — the UI shows that honestly rather than passing a template
+ * off as a live write-up.
+ *
+ * It describes the demo target's real bug: VulnerableVault.emergencyWithdraw is
+ * missing its owner-only check, so any fresh account drains the whole vault.
  *
  * Note what it does NOT do: it never invents a severity for payment. The
  * severity that triggers money comes from which of the company's pre-written
@@ -27,20 +30,20 @@ export function cannedReport(checker: CheckerResult): EvidenceReport {
       `was reproduced on ${where}.`,
     steps: [
       "A brand new account was created with no deposits and no special permissions.",
-      "The account called the vault's withdraw path.",
-      "Before the vault finished updating its own records, it sent funds back to the attacker's contract.",
-      "The attacker's contract used that moment to call withdraw again, repeating the payout against a balance the vault had not yet reduced.",
-      `The loop ended with ${value} test USDC moved out of the vault to the attacker.`,
+      "That account called the vault's emergencyWithdraw function.",
+      "emergencyWithdraw was meant to be callable only by the vault owner, but the permission check was never added.",
+      "With no check to stop it, the function sent the vault's entire token balance to whoever called it.",
+      `The attacker walked away with ${value} test USDC that belonged to the vault's depositors.`,
     ],
     rootCause:
-      "The vault sends money out before it writes down that the money is gone. " +
-      "Anything the vault calls during that gap can call back in and be paid " +
-      "twice from the same balance.",
+      "The vault's emergency withdrawal function is missing its owner-only " +
+      "permission check, so any account at all can call it and drain every " +
+      "deposit in a single transaction.",
     suggestedSeverity: severity,
     suggestedFixSummary:
-      "Update the stored balance before transferring, so the vault's records are " +
-      "already correct by the time an outside contract regains control. A " +
-      "re-entrancy guard on the withdraw function is a second layer.",
+      "Restrict emergencyWithdraw to the owner (an onlyOwner / access-control " +
+      "check), so a fresh account can never call it. Review every other " +
+      "privileged function for the same missing check.",
     fallback: true,
   };
 }
