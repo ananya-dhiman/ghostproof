@@ -79,6 +79,14 @@ integrate against. It is updated on every push to `b-backend`.
   `@arkiv-network/sdk` with an expiry (= response deadline), after a real payout;
   local mirror is the fallback for `/records`. **Needs `ARKIV_ACCESS_KEY` +
   funded key to verify; `npm run arkiv-smoke` tests it standalone.**
+- **B3 real Sepolia fork — VERIFIED LIVE.** When A's contracts are deployed and
+  an RPC is set, the checker forks Sepolia at the current block and runs the
+  exploit against the **real deployed vault** (so `forkBlock` is a real block and
+  the measurement is on live state), falling back to the self-contained local run
+  otherwise. Confirmed: demo exploit → `forkBlock 12077778`, `valueMovedUsdc 1000`
+  measured against the deployed vault.
+- **reportId unique across restarts** — `rep_<run-seed>_<n>`, so the on-chain id
+  `keccak256(reportId)` never collides after a server restart.
 - **B7 World ID (backend-owned)** — `/verify-human` verifies the proof against
   World ID's v2 cloud endpoint directly (no SDK), records the nullifier on a real
   pass, and `/submit` blocks a second submission from the same nullifier. Honest
@@ -92,7 +100,6 @@ integrate against. It is updated on every push to `b-backend`.
 
 | Step | What it adds | Blocked on |
 |------|--------------|-----------|
-| **B3** real Sepolia fork | checker forks Sepolia and runs against A's *deployed* vault (real forkBlock, "copy of the live chain" story) instead of a fresh local deploy | nothing — optional. The self-contained checker already produces correct numbers; B3 is an authenticity boost |
 | **B6 wiring** | actually write to Arkiv | rabdi faucet funds + `ARKIV_ACCESS_KEY` + `ARKIV_PRIVATE_KEY` in `.env` (operator's `.env` still has the old `ARKIV_RPC_URL`, not `ARKIV_ACCESS_KEY`) |
 | **B5 live AI** | real Claude report instead of fallback | `ANTHROPIC_API_KEY` in `.env` |
 | **B7 happy path** | a real `verified:true` | needs a real Simulator proof via C's widget; the gate itself is verified live (blocks unverified submits). **C:** drop your Next verify route, POST the proof to `/verify-human` |
@@ -126,6 +133,7 @@ integrate against. It is updated on every push to `b-backend`.
 
 ## Changelog
 
+- **B3** — checker forks live Sepolia against the deployed vault (verified: real forkBlock, 1000 USDC measured); reportId now unique across restarts.
 - **live** — merged A's Sepolia deploy; verified B4 payout on-chain (50 USDC paid); fixed stale `run()` doc in types.ts.
 - **B7** — backend-owned World ID: `/verify-human` real cloud verify (direct v2 API, no SDK).
 - **B6** — Arkiv public-record writer (`@arkiv-network/sdk`), expiry = deadline, mirror fallback, `arkiv-smoke`.

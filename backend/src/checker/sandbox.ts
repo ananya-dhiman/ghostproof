@@ -103,9 +103,57 @@ contract Harness is Test {
 `;
 }
 
+/**
+ * Fork harness: instead of deploying a fresh vault, attach to the real deployed
+ * MockUSDC + VulnerableVault (forge forks Sepolia at the pinned block, so the
+ * run sees the live vault's actual balances and depositors). Everything else —
+ * fresh attacker, run the submission, measure, apply the rules — is identical.
+ */
+function forkHarness(contractName: string, usdc: string, vault: string): string {
+  return `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import {Test, console2} from "forge-std/Test.sol";
+import {MockUSDC} from "target/mocks/MockUSDC.sol";
+import {VulnerableVault} from "target/VulnerableVault.sol";
+import {Rules} from "target/rules/Rules.sol";
+import {${contractName}} from "./submission/Submission.sol";
+
+contract Harness is Test {
+    MockUSDC usdc = MockUSDC(${usdc});
+    VulnerableVault vault = VulnerableVault(${vault});
+
+    function test_check() public {
+        address attacker = makeAddr("attacker");
+        ${contractName} exploit = new ${contractName}();
+
+        uint256 beforeBal = usdc.balanceOf(address(exploit));
+        vm.prank(attacker);
+        try exploit.run(vault) {} catch {}
+        uint256 afterBal = usdc.balanceOf(address(exploit));
+        uint256 moved = afterBal > beforeBal ? afterBal - beforeBal : 0;
+
+        (bool noTheftBroken, uint8 noTheftSev) = Rules.noTheft(beforeBal, afterBal);
+        (bool acctBroken, uint8 acctSev) =
+            Rules.accountingIntact(vault.totalDeposits(), usdc.balanceOf(address(vault)));
+
+        console2.log("GP_MOVED", moved);
+        console2.log("GP_NOTHEFT", noTheftBroken ? uint256(1) : uint256(0), noTheftSev);
+        console2.log("GP_ACCT", acctBroken ? uint256(1) : uint256(0), acctSev);
+    }
+}
+`;
+}
+
+export interface SandboxOptions {
+  /** Deployed addresses to attach to; when set, generate the fork harness. */
+  fork?: { usdc: string; vault: string };
+}
+
 export async function buildSandbox(
   exploitSource: string,
   contractName: string,
+  opts: SandboxOptions = {},
 ): Promise<Sandbox> {
   const dir = await mkdtemp(path.join(os.tmpdir(), "gp-run-"));
   try {
@@ -118,7 +166,10 @@ export async function buildSandbox(
       path.join(dir, "test", "submission", "Submission.sol"),
       exploitSource,
     );
-    await writeFile(path.join(dir, "test", "Harness.t.sol"), harness(contractName));
+    const harnessSrc = opts.fork
+      ? forkHarness(contractName, opts.fork.usdc, opts.fork.vault)
+      : harness(contractName);
+    await writeFile(path.join(dir, "test", "Harness.t.sol"), harnessSrc);
   } catch (err) {
     await rm(dir, { recursive: true, force: true });
     throw err;

@@ -6,10 +6,12 @@
  * what the exploit moved on-chain and which rule the company wrote in advance.
  */
 import type { CheckerResult, SeverityName } from "../types.js";
+import { addresses, addressesDeployed, publicClient } from "../chain/clients.js";
+import { env } from "../env.js";
 import { findExploitContract } from "./guard.js";
-import { runForge } from "./forge.js";
+import { runForge, type ForgeOptions } from "./forge.js";
 import { parseForgeOutput, type ParsedRun } from "./parse.js";
-import { buildSandbox } from "./sandbox.js";
+import { buildSandbox, type SandboxOptions } from "./sandbox.js";
 
 export interface CheckerOutcome {
   checker: CheckerResult;
@@ -47,10 +49,28 @@ export async function runChecker(
     };
   }
 
-  const sandbox = await buildSandbox(exploitSource, contractName);
+  // When A's contracts are deployed and we have an RPC, fork the live chain and
+  // run against the real deployed vault (real forkBlock). Otherwise run the
+  // self-contained harness that deploys a fresh vault locally (forkBlock 0).
+  let sandboxOpts: SandboxOptions = {};
+  let forgeOpts: ForgeOptions = {};
+  let forkBlock = 0;
+  if (addressesDeployed() && env.sepoliaRpcUrl) {
+    try {
+      const block = await publicClient().getBlockNumber();
+      forkBlock = Number(block);
+      sandboxOpts = { fork: { usdc: addresses.usdc, vault: addresses.vault } };
+      forgeOpts = { forkUrl: env.sepoliaRpcUrl, forkBlock: block };
+    } catch (err) {
+      // RPC hiccup — fall back to the self-contained run rather than fail.
+      console.error(`[checker] ${reportId} fork setup failed, using local run:`, err);
+    }
+  }
+
+  const sandbox = await buildSandbox(exploitSource, contractName, sandboxOpts);
   let parsed: ParsedRun;
   try {
-    const run = await runForge(sandbox.dir);
+    const run = await runForge(sandbox.dir, forgeOpts);
     if (run.timedOut) {
       return {
         checker: blankResult(reportId, exploitHash),
@@ -89,7 +109,7 @@ export async function runChecker(
       ruleBroken,
       severity,
       valueMovedUsdc,
-      forkBlock: 0, // local run (B1/B2); becomes the real fork block at B3
+      forkBlock, // real Sepolia block when forking; 0 for a self-contained run
       exploitHash,
       reportId,
     },

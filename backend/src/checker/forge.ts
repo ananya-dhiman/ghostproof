@@ -22,6 +22,13 @@ export interface ForgeRun {
   timedOut: boolean;
 }
 
+export interface ForgeOptions {
+  /** When set, forge forks this RPC so the harness runs against live chain state. */
+  forkUrl?: string;
+  /** Pin the fork to a block for determinism. */
+  forkBlock?: bigint;
+}
+
 /** Locate the forge binary: PATH first, then the default foundryup location. */
 function forgeBin(): string {
   // execFile resolves a bare name against PATH; the fallback covers a server
@@ -50,11 +57,18 @@ function scrubbedEnv(): NodeJS.ProcessEnv {
   return clone;
 }
 
-export function runForge(dir: string): Promise<ForgeRun> {
+export function runForge(dir: string, opts: ForgeOptions = {}): Promise<ForgeRun> {
+  const args = ["test", "--json", "-vv", "--match-contract", "Harness"];
+  if (opts.forkUrl) {
+    args.push("--fork-url", opts.forkUrl);
+    if (opts.forkBlock !== undefined) {
+      args.push("--fork-block-number", opts.forkBlock.toString());
+    }
+  }
   return new Promise((resolve) => {
     const child = execFile(
       forgeBin(),
-      ["test", "--json", "-vv"],
+      args,
       {
         cwd: dir,
         env: scrubbedEnv(),
