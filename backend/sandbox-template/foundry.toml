@@ -1,0 +1,24 @@
+# Sandbox for running UNTRUSTED submitted exploits. These settings are the
+# second layer of the safety guard (the first is src/checker/guard.ts):
+#   - ffi off      => a submission cannot shell out to the host
+#   - fs_permissions = [] => it cannot read or write any file
+# Matches Person A's contracts/foundry.toml (solc 0.8.24) so a submission that
+# compiles against the real target compiles here too.
+[profile.default]
+src = "src"
+out = "out"
+test = "test"
+libs = ["lib"]
+solc = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+
+ffi = false
+fs_permissions = []
+
+# forge-std for the generated harness; `target/` lets a submission import the
+# vault with a stable path regardless of where its file is dropped.
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+  "target/=src/",
+]

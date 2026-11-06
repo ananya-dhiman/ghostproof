@@ -1,0 +1,9 @@
+# forge-std is installed into lib/ by the runner on first use (scripts/setup-sandbox);
+# it is a public dependency, not ours to vendor in git.
+lib/
+out/
+cache/
+# the generated harness and dropped submission are written per-run into a temp
+# copy, never here — but ignore them just in case.
+test/
+foundry.lock

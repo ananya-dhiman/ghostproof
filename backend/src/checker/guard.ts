@@ -100,14 +100,37 @@ export function guardExploitSource(source: string, maxBytes: number): GuardResul
     }
   }
 
-  if (!/function\s+runExploit\s*\(/.test(code)) {
+  if (!/function\s+run\s*\(/.test(code)) {
     return {
       ok: false,
-      reason: "the submission must expose `function runExploit() external`",
+      reason:
+        "the submission must expose `function run(VulnerableVault vault) external`",
     };
   }
 
   return { ok: true };
+}
+
+/**
+ * The name of the contract to instantiate in the harness: the first contract
+ * that declares a `run(` function. Returns null if none is found (the guard
+ * should have caught that already).
+ */
+export function findExploitContract(source: string): string | null {
+  const code = stripComments(source);
+  const contractRe = /\bcontract\s+(\w+)/g;
+  const contracts: { name: string; start: number }[] = [];
+  for (const m of code.matchAll(contractRe)) {
+    contracts.push({ name: m[1]!, start: m.index ?? 0 });
+  }
+  for (let i = 0; i < contracts.length; i++) {
+    const start = contracts[i]!.start;
+    const end = i + 1 < contracts.length ? contracts[i + 1]!.start : code.length;
+    if (/function\s+run\s*\(/.test(code.slice(start, end))) {
+      return contracts[i]!.name;
+    }
+  }
+  return contracts[0]?.name ?? null;
 }
 
 /**

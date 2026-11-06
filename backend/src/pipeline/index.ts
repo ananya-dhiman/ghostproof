@@ -5,9 +5,11 @@
  * of which are hungry, and two concurrent runs on a laptop during a live demo
  * is how you get a timeout on stage. Submissions queue instead.
  */
+import { runChecker } from "../checker/index.js";
+import { cannedReport } from "../ai/fallback.js";
 import { env } from "../env.js";
 import * as store from "../store.js";
-import type { SubmissionMetadata } from "../types.js";
+import type { ArkivRecord, SubmissionMetadata } from "../types.js";
 import { runMockPipeline } from "./mock.js";
 
 let queue: Promise<void> = Promise.resolve();
@@ -47,9 +49,41 @@ async function run(
     return;
   }
 
-  // B1-B6 replace this with: anvil fork -> forge measure -> rule tests ->
-  // evidence report -> autoPayout -> Arkiv record.
-  // TODO(B1): real fork runner.
-  void exploitSource;
-  throw new Error("live pipeline not implemented yet — set MOCK_PIPELINE=true");
+  // Step 1-9: run the exploit on the sandbox, measure it, apply the rules.
+  console.log(`[pipeline] ${reportId} running checker`);
+  const outcome = await runChecker(reportId, exploitSource, exploitHash);
+
+  if (!outcome.checker.verified) {
+    // Did not compile / run / timed out — the company never sees it.
+    store.setStatus(reportId, "rejected", outcome.error ?? undefined);
+    return;
+  }
+
+  store.setChecker(reportId, outcome.checker);
+  store.setStatus(reportId, "verified");
+
+  // Step 10: evidence report. B5 swaps the canned report for the live AI call;
+  // the fallback is always available so the pipeline never hangs on a model.
+  // TODO(B5): live Anthropic call with a timeout, falling back to this.
+  store.setEvidence(reportId, cannedReport(outcome.checker));
+
+  // Step 11: payout. B4 calls the BountyPool settler here when a rule broke.
+  // TODO(B4): settleReport(hacker, severity) on A's BountyPool, wait for receipt.
+
+  // Step 12: public record. B6 writes this to Arkiv; for now mirror it locally
+  // so GET /records works end to end.
+  if (outcome.checker.ruleBroken) {
+    const record: ArkivRecord = {
+      bountyId: meta.bountyId,
+      reportId,
+      exploitHash,
+      severity: outcome.checker.severity,
+      valueMovedUsdc: outcome.checker.valueMovedUsdc,
+      status: "base-paid", // becomes real once B4 pays; placeholder for now
+      paidUsdc: 0, // TODO(B4): the actual base paid
+      bonusUsdc: 0,
+      createdAt: Math.floor(Date.now() / 1000),
+    };
+    store.mirrorArkivRecord(record);
+  }
 }
