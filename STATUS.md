@@ -3,7 +3,10 @@
 **Update this file with every push.** It is the one place to see what is finished, what is
 blocked, and what each person can start right now.
 
-- **Last updated:** 2026-11-06 ~20:10 IST, by Person A
+> **This file lives on the `a-contracts` branch only — it is deliberately not on `main`.**
+> Do not merge `a-contracts` into `main` without Person A's explicit go-ahead.
+
+- **Last updated:** 2026-11-06 ~20:20 IST, by Person A
 - **Submissions close:** Sat 2026-11-07, 09:00 IST (partner judging 09:30–12:30)
 
 ---
