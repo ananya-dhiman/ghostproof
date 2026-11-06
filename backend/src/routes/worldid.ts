@@ -14,6 +14,7 @@ import { Router } from "express";
 import { env } from "../env.js";
 import * as store from "../store.js";
 import type { WorldIdProofRequest, WorldIdVerifyResponse } from "../types.js";
+import { verifyWorldIdProof } from "../worldid/verify.js";
 
 export const worldIdRouter: Router = Router();
 
@@ -27,20 +28,43 @@ worldIdRouter.post("/verify-human", async (req, res) => {
   }
 
   if (!env.worldAppId) {
-    // Not configured yet: be honest about it rather than returning a fake pass.
+    // Not configured yet: be honest rather than returning a fake pass. We still
+    // record the nullifier so the submission flow is testable before the App ID
+    // is set — real verification turns on the moment WORLD_APP_ID lands in .env.
     store.markNullifierVerified(nullifier);
     const payload: WorldIdVerifyResponse = {
       verified: false,
       nullifierHash: nullifier,
       alreadyUsed: store.isNullifierSpent(nullifier),
-      error: "World ID is not configured on this server yet (B7)",
+      error: "World ID is not configured on this server yet (set WORLD_APP_ID)",
     };
     res.json(payload);
     return;
   }
 
-  // TODO(B7): verifyCloudProof(proof, app_id, action, signal) against the
-  // World ID Simulator, then mark verified only on a real pass.
+  // Need the full proof to verify against World ID's cloud endpoint.
+  if (!body?.proof || !body.merkle_root || !body.verification_level) {
+    res.status(400).json({
+      error: "proof, merkle_root, nullifier_hash and verification_level are required",
+    });
+    return;
+  }
+
+  const outcome = await verifyWorldIdProof(body as WorldIdProofRequest);
+
+  if (!outcome.success) {
+    const payload: WorldIdVerifyResponse = {
+      verified: false,
+      nullifierHash: nullifier,
+      alreadyUsed: store.isNullifierSpent(nullifier),
+      error: outcome.detail ?? outcome.code ?? "World ID verification failed",
+    };
+    res.status(401).json(payload);
+    return;
+  }
+
+  // Real, unique human. Remember the nullifier so /submit will accept one
+  // submission from it and block any second attempt.
   store.markNullifierVerified(nullifier);
   const payload: WorldIdVerifyResponse = {
     verified: true,

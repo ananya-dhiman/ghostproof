@@ -44,7 +44,7 @@ integrate against. It is updated on every push to `b-backend`.
   | GET | `/reports` | all reports, newest first (company inbox) |
   | GET | `/records` | `{ source, records: ArkivReportRecord[] }` (public track record) |
   | GET | `/pool` | `{ deployed, poolUsdc, autoPayLimitUsdc, monthlyCapUsdc, tiers }` — `deployed:false` until A deploys |
-  | POST | `/verify-human` | `{ verified, nullifierHash, alreadyUsed, error? }` (stub until B7) |
+  | POST | `/verify-human` | `{ verified, nullifierHash, alreadyUsed, error? }` — real World ID cloud verify when `WORLD_APP_ID` is set; honest stub otherwise |
   | GET | `/health` | which subsystems are live |
 - **Report envelope** (`GET /report/:id`): `{ reportId, status, submission{bountyId,
   hackerAddress, submittedAt}, checker|null, report|null, payout|null, arkiv|null,
@@ -77,6 +77,11 @@ integrate against. It is updated on every push to `b-backend`.
   `@arkiv-network/sdk` with an expiry (= response deadline), after a real payout;
   local mirror is the fallback for `/records`. **Needs `ARKIV_ACCESS_KEY` +
   funded key to verify; `npm run arkiv-smoke` tests it standalone.**
+- **B7 World ID (backend-owned)** — `/verify-human` verifies the proof against
+  World ID's v2 cloud endpoint directly (no SDK), records the nullifier on a real
+  pass, and `/submit` blocks a second submission from the same nullifier. Honest
+  stub when `WORLD_APP_ID` is unset. Verified against the live endpoint (dummy app
+  → clean 401 with reason; real pass needs a real App ID + Simulator proof).
 - **B8 docs (partial)** — `backend/AI_USAGE.md`, `/arkiv/why-arkiv.md`,
   `/arkiv/how-you-use-arkiv.md` written.
 - **Merged `main`** → the branch now has A's contracts + ABIs (`shared/abis/`).
@@ -88,7 +93,7 @@ integrate against. It is updated on every push to `b-backend`.
 | **B3** real Sepolia fork | checker measures against A's *deployed* vault, not a fresh local one | **A:** addresses in `shared/config.ts`. **Operator:** `SEPOLIA_RPC_URL`. (Optional for the demo — the self-contained checker already produces correct numbers) |
 | **B4 wiring** | actually send a payout tx | **A:** deploy + set backend wallet as `settler`. **Operator:** `BACKEND_PRIVATE_KEY` + Sepolia gas |
 | **B6 wiring** | actually write to Arkiv | rabdi faucet funds + `ARKIV_ACCESS_KEY` + `ARKIV_PRIVATE_KEY` |
-| **B7** World ID | real `verifyCloudProof` in `/verify-human` | not yet implemented. **C:** IDKit widget → POST `{ proof, merkle_root, nullifier_hash, verification_level }`. **Operator:** `WORLD_APP_ID`. (Note: C's frontend already verifies in its own Next route; decide who owns it) |
+| **B7 wiring** | go live | **Operator:** `WORLD_APP_ID` + `WORLD_ACTION_ID=verify-human` in `.env`. **Team decision made:** backend owns World ID verification — **C should remove its own Next verify route** and instead POST the IDKit proof `{ proof, merkle_root, nullifier_hash, verification_level }` to backend `/verify-human` |
 | **B8** remaining docs | `/arkiv/friction.md`, `/arkiv/reach.md`, World debrief, consolidated root `AI_USAGE.md`, 3-min video | team |
 
 ## 📋 Person A — action items
@@ -107,17 +112,19 @@ integrate against. It is updated on every push to `b-backend`.
 - `/submit` is **async**: get `reportId`, then poll `GET /report/:id` every ~2s.
   Read the picked `.sol` file to a string for `exploitSource`.
 - Company inbox = `GET /reports`; public track record = `GET /records`.
-- **World ID:** you build the IDKit widget; POST its output to `/verify-human` as
-  `{ proof, merkle_root, nullifier_hash, verification_level }`. Backend verifies
-  (never the browser) and blocks a second submission from the same nullifier.
-  Stubbed until B7 — returns `verified:false` with a reason but records the
-  nullifier, so the flow is testable now.
+- **World ID (decision: backend owns it):** keep your IDKit **widget**, but
+  **remove your own `/api/verify` Next route** — POST the proof
+  `{ proof, merkle_root, nullifier_hash, verification_level }` to backend
+  `/verify-human` instead. The backend runs the real cloud verify and owns the
+  "one submission per human" block. It's a real check now; it just needs
+  `WORLD_APP_ID` in the backend `.env` to go live (honest stub until then).
 - Build the whole UI now against `MOCK_PIPELINE=true` (realistic data, no keys).
 
 ---
 
 ## Changelog
 
+- **B7** — backend-owned World ID: `/verify-human` real cloud verify (direct v2 API, no SDK).
 - **B6** — Arkiv public-record writer (`@arkiv-network/sdk`), expiry = deadline, mirror fallback, `arkiv-smoke`.
 - **B4** — payout via `BountyPool.settleReport` + `GET /pool`; graceful skip when chain not wired.
 - **merge** — pulled `main` (A's contracts + `shared/abis/`) into `b-backend`.
