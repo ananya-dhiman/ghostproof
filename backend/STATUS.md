@@ -63,10 +63,13 @@ integrate against. It is updated on every push to `b-backend`.
   chain. Verified: demo exploit → `verified, ruleBroken:"no-theft",
   severity:"critical", valueMovedUsdc:1000`; non-compiling → `rejected` + compiler
   error; harmless exploit → `verified, ruleBroken:null`.
-- **B5 AI report** — `claude-haiku-5-5` via structured output; the measured result
-  is the ground truth, the model only describes it. Always falls back to a canned
-  report on no-key/parse-fail/error/20s-timeout, flagged `fallback:true`.
-  (Live call not yet verified — no API key in B's env; fallback path verified.)
+- **B5 AI report — Gemini (free tier)** via `@google/genai` structured output,
+  validated against a Zod schema; the measured result is the ground truth, the
+  model only describes it. Always falls back to a canned report on
+  no-key/parse-fail/error/20s-timeout, flagged `fallback:true`. Set
+  `GEMINI_API_KEY` (free: aistudio.google.com/apikey) to go live. (Switched from
+  Anthropic to Gemini's free tier; `@anthropic-ai/sdk` removed.) Health subsystem
+  field renamed `anthropic` → `ai`.
 - **B4 payout — VERIFIED LIVE on Sepolia.** On a broken rule,
   `settleReport(keccak256(id), hacker, severityUint8, "0x")` on A's `BountyPool`
   via viem, records the paid amount + tx. Confirmed end-to-end: demo exploit →
@@ -101,7 +104,8 @@ integrate against. It is updated on every push to `b-backend`.
 | Step | What it adds | Blocked on |
 |------|--------------|-----------|
 | **B6 wiring** | actually write to Arkiv | rabdi faucet funds + `ARKIV_ACCESS_KEY` + `ARKIV_PRIVATE_KEY` in `.env` (operator's `.env` still has the old `ARKIV_RPC_URL`, not `ARKIV_ACCESS_KEY`) |
-| **B5 live AI** | real Claude report instead of fallback | `ANTHROPIC_API_KEY` in `.env` |
+| **B5 live AI** | real Gemini report instead of fallback | `GEMINI_API_KEY` in `.env` (free tier) |
+| **B6 wiring** (note) | the operator's `ARKIV_PRIVATE_KEY` must be a real `0x` wallet key + faucet-funded; the access key is optional | — |
 | **B7 happy path** | a real `verified:true` | needs a real Simulator proof via C's widget; the gate itself is verified live (blocks unverified submits). **C:** drop your Next verify route, POST the proof to `/verify-human` |
 | **B8** remaining docs | consolidate all four `/arkiv/*.md` onto the submission branch, World debrief, root `AI_USAGE.md`, 3-min video | team |
 
@@ -133,6 +137,7 @@ integrate against. It is updated on every push to `b-backend`.
 
 ## Changelog
 
+- **gemini** — swapped the evidence-report provider from Anthropic to Gemini (free tier); Arkiv access key now optional; health `anthropic`→`ai`.
 - **B3** — checker forks live Sepolia against the deployed vault (verified: real forkBlock, 1000 USDC measured); reportId now unique across restarts.
 - **live** — merged A's Sepolia deploy; verified B4 payout on-chain (50 USDC paid); fixed stale `run()` doc in types.ts.
 - **B7** — backend-owned World ID: `/verify-human` real cloud verify (direct v2 API, no SDK).

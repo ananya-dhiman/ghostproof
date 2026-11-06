@@ -146,7 +146,7 @@ export interface HealthResponse {
   subsystems: {
     foundry: boolean;
     sepoliaRpc: boolean;
-    anthropic: boolean;
+    ai: boolean;
     arkiv: boolean;
     worldId: boolean;
     payoutWallet: boolean;

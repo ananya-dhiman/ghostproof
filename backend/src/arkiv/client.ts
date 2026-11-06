@@ -16,7 +16,8 @@ import { env } from "../env.js";
 import type { ArkivRecord } from "../types.js";
 
 export function arkivReady(): boolean {
-  return Boolean(env.arkivAccessKey && env.arkivPrivateKey);
+  // A funded key is enough; the access key only relieves public-RPC rate limits.
+  return Boolean(env.arkivPrivateKey);
 }
 
 export interface ArkivWriteResult {
@@ -60,7 +61,7 @@ export async function writeArkivRecord(
     if (!isHex(key)) throw new Error("ARKIV_PRIVATE_KEY is not a hex private key");
     const account = privateKeyToAccount(key);
 
-    const chain = rabdi({ accessKey: env.arkivAccessKey });
+    const chain = rabdi({ accessKey: env.arkivAccessKey || "" });
     const walletClient = createWalletClient({ chain, transport: http(), account });
 
     const base = {
