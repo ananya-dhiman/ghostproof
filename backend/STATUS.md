@@ -5,7 +5,7 @@ read this first when you pull or reference this branch — it tells you what the
 backend already provides, what it still needs from you, and the exact shapes you
 integrate against. It is updated on every push to `b-backend`.
 
-- **Last updated:** merged `main`; B4 (payout) + B6 (Arkiv) code-complete; judge docs written. See changelog.
+- **Last updated:** merged A's Sepolia deploy; **B4 payout VERIFIED LIVE on Sepolia** (50 USDC paid on-chain). See changelog.
 - **Owner:** Person B (checker + backend), Node/TypeScript, folder `/backend`
 - **Run it:** `cd backend && npm run dev` (needs Node 22 on PATH only for B6/Arkiv;
   Node 20 runs everything else). `MOCK_PIPELINE=true` (default) serves realistic
@@ -67,12 +67,14 @@ integrate against. It is updated on every push to `b-backend`.
   is the ground truth, the model only describes it. Always falls back to a canned
   report on no-key/parse-fail/error/20s-timeout, flagged `fallback:true`.
   (Live call not yet verified — no API key in B's env; fallback path verified.)
-- **B4 payout (code-complete)** — on a broken rule, `settleReport(keccak256(id),
-  hacker, severityUint8, "0x")` on A's `BountyPool` via viem, then records the
-  paid amount + tx. Degrades cleanly: if the chain isn't wired the report stays
-  `verified` with payout pending (no premature record). `GET /pool` reads config
-  + balance. **Verified pre-deploy (graceful skip); on-chain settle needs A's
-  deploy + key + settler auth.**
+- **B4 payout — VERIFIED LIVE on Sepolia.** On a broken rule,
+  `settleReport(keccak256(id), hacker, severityUint8, "0x")` on A's `BountyPool`
+  via viem, records the paid amount + tx. Confirmed end-to-end: demo exploit →
+  checker → 50 USDC paid pool→hacker on-chain (tx
+  `0x2c490ab3…a4312`, block 12077643; hacker 0→50, pool 2000→1950,
+  openReports=1). `GET /pool` reads the real deploy (2000 / limit 50 / tiers
+  50·200·500). Settler = the deployer wallet, which is `BACKEND_PRIVATE_KEY`
+  (no `setSettler` needed). Degrades cleanly when the chain isn't wired.
 - **B6 Arkiv (code-complete)** — writes the public record to rabdi via
   `@arkiv-network/sdk` with an expiry (= response deadline), after a real payout;
   local mirror is the fallback for `/records`. **Needs `ARKIV_ACCESS_KEY` +
@@ -90,11 +92,11 @@ integrate against. It is updated on every push to `b-backend`.
 
 | Step | What it adds | Blocked on |
 |------|--------------|-----------|
-| **B3** real Sepolia fork | checker measures against A's *deployed* vault, not a fresh local one | **A:** addresses in `shared/config.ts`. **Operator:** `SEPOLIA_RPC_URL`. (Optional for the demo — the self-contained checker already produces correct numbers) |
-| **B4 wiring** | actually send a payout tx | **A:** deploy + set backend wallet as `settler`. **Operator:** `BACKEND_PRIVATE_KEY` + Sepolia gas |
-| **B6 wiring** | actually write to Arkiv | rabdi faucet funds + `ARKIV_ACCESS_KEY` + `ARKIV_PRIVATE_KEY` |
-| **B7 wiring** | go live | **Operator:** `WORLD_APP_ID` + `WORLD_ACTION_ID=verify-human` in `.env`. **Team decision made:** backend owns World ID verification — **C should remove its own Next verify route** and instead POST the IDKit proof `{ proof, merkle_root, nullifier_hash, verification_level }` to backend `/verify-human` |
-| **B8** remaining docs | `/arkiv/friction.md`, `/arkiv/reach.md`, World debrief, consolidated root `AI_USAGE.md`, 3-min video | team |
+| **B3** real Sepolia fork | checker forks Sepolia and runs against A's *deployed* vault (real forkBlock, "copy of the live chain" story) instead of a fresh local deploy | nothing — optional. The self-contained checker already produces correct numbers; B3 is an authenticity boost |
+| **B6 wiring** | actually write to Arkiv | rabdi faucet funds + `ARKIV_ACCESS_KEY` + `ARKIV_PRIVATE_KEY` in `.env` (operator's `.env` still has the old `ARKIV_RPC_URL`, not `ARKIV_ACCESS_KEY`) |
+| **B5 live AI** | real Claude report instead of fallback | `ANTHROPIC_API_KEY` in `.env` |
+| **B7 happy path** | a real `verified:true` | needs a real Simulator proof via C's widget; the gate itself is verified live (blocks unverified submits). **C:** drop your Next verify route, POST the proof to `/verify-human` |
+| **B8** remaining docs | consolidate all four `/arkiv/*.md` onto the submission branch, World debrief, root `AI_USAGE.md`, 3-min video | team |
 
 ## 📋 Person A — action items
 
@@ -124,6 +126,7 @@ integrate against. It is updated on every push to `b-backend`.
 
 ## Changelog
 
+- **live** — merged A's Sepolia deploy; verified B4 payout on-chain (50 USDC paid); fixed stale `run()` doc in types.ts.
 - **B7** — backend-owned World ID: `/verify-human` real cloud verify (direct v2 API, no SDK).
 - **B6** — Arkiv public-record writer (`@arkiv-network/sdk`), expiry = deadline, mirror fallback, `arkiv-smoke`.
 - **B4** — payout via `BountyPool.settleReport` + `GET /pool`; graceful skip when chain not wired.

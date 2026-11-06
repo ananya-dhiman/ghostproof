@@ -21,7 +21,8 @@ export interface Submission {
   bountyId: string;
   hackerAddress: string;
   worldIdNullifier: string;
-  /** Full text of Exploit.t.sol. Must expose `function runExploit() external`. */
+  /** Full text of the exploit .sol. Must expose a contract with
+   *  `function run(VulnerableVault vault) external` (matches A's ExploitDrain). */
   exploitSource: string;
 }
 
