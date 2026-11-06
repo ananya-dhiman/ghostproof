@@ -9,6 +9,7 @@ import { runChecker } from "../checker/index.js";
 import { generateReport } from "../ai/report.js";
 import { chainReady } from "../chain/clients.js";
 import { settlePayout } from "../chain/payout.js";
+import { writeArkivRecord } from "../arkiv/client.js";
 import { env } from "../env.js";
 import * as store from "../store.js";
 import type { ArkivRecord, SubmissionMetadata } from "../types.js";
@@ -114,6 +115,13 @@ async function run(
       createdAt: Math.floor(Date.now() / 1000),
     };
     store.mirrorArkivRecord(record);
-    // TODO(B6): also write this to Arkiv (rabdi) with an expiresIn.
+
+    // Write it to Arkiv too. The mirror above already makes /records work, so an
+    // Arkiv failure is logged and ignored, never fatal.
+    const written = await writeArkivRecord(record);
+    if (written) {
+      store.setArkiv(reportId, { entityKey: written.entityKey, url: null });
+      console.log(`[pipeline] ${reportId} on Arkiv: ${written.entityKey}`);
+    }
   }
 }

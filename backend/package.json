@@ -11,10 +11,12 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "arkiv-smoke": "tsx scripts/arkiv-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
+    "@arkiv-network/sdk": "^1.0.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",

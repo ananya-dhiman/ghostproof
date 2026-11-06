@@ -47,7 +47,9 @@ export const env = {
   worldAppId: str("WORLD_APP_ID"),
   worldActionId: str("WORLD_ACTION_ID", "verify-human"),
 
-  arkivRpcUrl: str("ARKIV_RPC_URL", "https://rpc.rabdi.db-chain.testnet.arkiv.network"),
+  // Arkiv testnet "rabdi". The SDK's rabdi() chain knows its own RPC; it needs
+  // an access key (public RPC is heavily rate-limited) plus a funded key.
+  arkivAccessKey: str("ARKIV_ACCESS_KEY"),
   arkivPrivateKey: str("ARKIV_PRIVATE_KEY"),
   arkivExpiresIn: num("ARKIV_EXPIRES_IN", 604_800),
 } as const;
@@ -60,7 +62,7 @@ export function configuredSubsystems() {
   return {
     sepoliaRpc: Boolean(env.sepoliaRpcUrl),
     anthropic: Boolean(env.anthropicApiKey),
-    arkiv: Boolean(env.arkivPrivateKey),
+    arkiv: Boolean(env.arkivAccessKey && env.arkivPrivateKey),
     worldId: Boolean(env.worldAppId),
     payoutWallet: Boolean(env.backendPrivateKey),
   };
