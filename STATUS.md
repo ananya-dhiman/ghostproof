@@ -9,7 +9,7 @@ Read it with: `git show origin/a-contracts:STATUS.md`
 > This file lives on `a-contracts` only — deliberately not on `main`.
 > Do not merge `a-contracts` into `main` without Person A's explicit go-ahead.
 
-- **Last updated:** 2026-11-06 ~21:15 IST — deployed to Sepolia; cross-checked against `b-backend`
+- **Last updated:** 2026-11-06 ~21:40 IST — Arkiv friction.md + reach.md written
 - **Owner:** Person A (contracts), Solidity/Foundry, folder `/contracts`
 - **Submissions close:** Sat 2026-11-07, 09:00 IST (partner judging 09:30–12:30)
 
@@ -72,6 +72,23 @@ signature is `function run(VulnerableVault vault) external`.**
 - [x] **Deployed and seeded on Sepolia**; addresses in `shared/config.ts` on `main`
 - [x] **Settler decided** — B reuses the deployer wallet; no on-chain change needed
 - [x] Cross-checked `b-backend`: vendored contracts in sync, types diff reviewed
+- [x] **Judge docs:** `/arkiv/friction.md` + `/arkiv/reach.md` written (B wrote the other two)
+
+## 🔴 Submission risk — the four Arkiv docs are split across branches
+
+Arkiv scores **25% each** on four files. Right now:
+
+| Branch | Has |
+|---|---|
+| `main` | **none** |
+| `a-contracts` | `friction.md`, `reach.md` |
+| `b-backend` | `why-arkiv.md`, `how-you-use-arkiv.md` |
+
+**All four must be on the submitted branch before 09:00.** Nothing is scored from a side branch.
+
+Also: both of my docs state the Arkiv write path is *code-complete but not verified live*. If B
+gets `ARKIV_ACCESS_KEY` + faucet funds and `npm run arkiv-smoke` passes, those two sentences
+(one in each file) should be updated to say it is verified.
 
 ## ⬜ Open — Person A
 
@@ -79,7 +96,6 @@ signature is `function run(VulnerableVault vault) external`.**
 |---|---|
 | Send B the `PRIVATE_KEY` + `SEPOLIA_RPC_URL` | **Person A** — out-of-band message, not the repo |
 | Decide whether B's `shared/types.ts` goes to `main` so C can use it | **Person A** — see below |
-| `/arkiv/friction.md` + `/arkiv/reach.md` (B wrote the other two) | nothing — A can write these now |
 | Optional: `setSettler(<B's own wallet>)` | B providing an address |
 
 **Decision pending on `shared/types.ts`:** B extended it on `b-backend` (+112 lines) with the
