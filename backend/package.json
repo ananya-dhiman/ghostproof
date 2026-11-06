@@ -1,0 +1,33 @@
+{
+  "name": "ghostproof-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ghostproof checker + backend: runs a submitted exploit on a fork, measures it, writes the evidence report, pays the base, records it on Arkiv.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx scripts/smoke.ts",
+    "arkiv-smoke": "tsx scripts/arkiv-smoke.ts",
+    "ai-smoke": "tsx scripts/ai-smoke.ts"
+  },
+  "dependencies": {
+    "@arkiv-network/sdk": "^1.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "viem": "^2.21.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

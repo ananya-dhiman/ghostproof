@@ -1,0 +1,18 @@
+[
+  {
+    "file": "NoTheft.t.sol",
+    "contract": "NoTheft",
+    "ruleId": "no-theft",
+    "severity": "critical",
+    "mandatory": true,
+    "description": "A fresh account with no permissions must never end up holding other people's money."
+  },
+  {
+    "file": "FeeAccounting.t.sol",
+    "contract": "FeeAccounting",
+    "ruleId": "fee-accounting",
+    "severity": "medium",
+    "mandatory": false,
+    "description": "The vault's recorded balances must still sum to the tokens it actually holds."
+  }
+]
