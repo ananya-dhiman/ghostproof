@@ -26,9 +26,15 @@ const arkivMirror: ArkivRecord[] = [];
 
 let counter = 0;
 
+// A per-process seed (base36 of the start time) prefixes every report id, so ids
+// are unique across restarts. The on-chain report id is keccak256(reportId); a
+// plain restart-resetting counter would reuse rep_001 and make settleReport
+// revert ("report exists"). The seed makes each run's ids distinct forever.
+const RUN_SEED = Date.now().toString(36);
+
 function nextReportId(): string {
   counter += 1;
-  return `rep_${String(counter).padStart(3, "0")}`;
+  return `rep_${RUN_SEED}_${counter}`;
 }
 
 export function createReport(meta: SubmissionMetadata): ReportEnvelope {
