@@ -7,14 +7,25 @@ Reference: `../new_PLAN.md`. Branch `b-backend`. Folder `/backend` only.
 
 ## 0. Blockers to clear first (do these before writing code)
 
-| # | Blocker | Why it matters | Fix |
-|---|---------|----------------|-----|
-| 0.1 | **Node is v20.19.5** | `@arkiv-network/sdk` v0.6.x needs **Node 22+** | Install Node 22 LTS (nvm-windows: `nvm install 22 && nvm use 22`). Everything else runs on 20, so Arkiv is the forcing function. |
-| 0.2 | **Foundry not installed** (`forge`, `anvil`, `cast` all missing) | The whole checker is `anvil` + `forge test --json` | Git Bash: `curl -L https://foundry.paradigm.xyz | bash` then `foundryup`. If that fails on Windows, download `foundry_nightly_win32_amd64.zip` from the Foundry releases page and put the three exes on PATH. **Verify `forge --version` and `anvil --version` before step 1.** |
-| 0.3 | **Sepolia RPC key** | forking, reading USDC balances, sending the payout tx | Alchemy or Infura free tier → `.env` as `SEPOLIA_RPC_URL`. |
-| 0.4 | **Arkiv testnet funds** | writing records to rabdi costs gas | Hit the rabdi faucet early. Faucets are slow and this is the thing most likely to bite at hour 12. |
-| 0.5 | **Anthropic API key** | evidence report | `.env` as `ANTHROPIC_API_KEY`. |
-| 0.6 | **A's contracts do not exist yet** | the fork runner needs a target | Do NOT wait. Write a throwaway re-entrancy vault in `backend/fixtures/` and build the runner against a **local** anvil. Swap to A's Sepolia address when it lands — one config change. |
+| # | Blocker | Status | Notes |
+|---|---------|--------|-------|
+| 0.1 | **Node 22 for Arkiv SDK** | ✅ done (local) | winget was broken and the per-machine MSI needs UAC we can't trigger silently, so Node 22.23.4 is installed **portable** at `C:\Users\Admin\tools\node-v22.23.4-win-x64` — NOT the machine default (that stays v20.19.5). See "Local dev" below for how to launch on 22. Only the Arkiv step (B6) truly needs it. |
+| 0.2 | **Foundry** (`forge`/`anvil`/`cast`) | ✅ done | v1.9.0 installed at `C:\Users\Admin\.foundry\bin` and added to the user PATH. Verified. |
+| 0.3 | **Sepolia RPC key** | ⬜ needed for B3+ | Alchemy or Infura free tier → `.env` as `SEPOLIA_RPC_URL`. Not needed for B1/B2 (local anvil, no fork). |
+| 0.4 | **Arkiv testnet funds** | ⬜ needed for B6 | Hit the rabdi faucet early. Faucets are slow and this is the thing most likely to bite at hour 12. |
+| 0.5 | **Anthropic API key** | ⬜ needed for B5 | `.env` as `ANTHROPIC_API_KEY`. The canned fallback works without it. |
+| 0.6 | **A's contracts do not exist yet** | ✅ worked around | Throwaway target in `backend/fixtures/VulnerableVault.sol` + `Exploit.t.sol`. Build the runner against a **local** anvil; swap to A's Sepolia address when it lands — one config change. |
+
+### Local dev (this machine)
+
+- **Foundry** is on the user PATH; a new terminal has `forge`/`anvil`/`cast`.
+- **Node 22** is portable, so the machine's bare `node` is still v20. Launch the
+  backend on 22 by putting it first on PATH for that process. From `/backend`:
+  ```bash
+  PATH="/c/Users/Admin/tools/node-v22.23.4-win-x64:$PATH" npm run dev
+  ```
+  Deps were installed under v20 (pure-JS, fine on 22). The shared `package.json`
+  stays clean — no absolute paths in it. Node 20 runs everything except B6.
 
 ---
 
