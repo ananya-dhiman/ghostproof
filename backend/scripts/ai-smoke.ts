@@ -1,6 +1,6 @@
 /**
- * Standalone Gemini report test — run with GEMINI_API_KEY set to confirm the
- * live evidence report works without running a full payout:
+ * Standalone report test — run with OPENROUTER_API_KEY set to confirm the live
+ * evidence report works without running a full payout:
  *
  *   npm run ai-smoke
  *
@@ -28,14 +28,14 @@ contract ExploitDrain {
 }`;
 
 async function main() {
-  console.log("Generating evidence report via Gemini...");
+  console.log("Generating evidence report via OpenRouter...");
   const report = await generateReport(sample, exploitSrc);
-  console.log("fallback:", report.fallback === true ? "true (canned)" : "false (LIVE Gemini)");
+  console.log("fallback:", report.fallback === true ? "true (canned)" : "false (LIVE)");
   console.log("summary :", report.summary);
   console.log("steps   :", report.steps.length, "step(s)");
   console.log("severity:", report.suggestedSeverity);
   if (report.fallback) {
-    console.log("\n(Used the canned fallback — set GEMINI_API_KEY, or the live call failed; see logs above.)");
+    console.log("\n(Used the canned fallback — set OPENROUTER_API_KEY, or the live call failed; see logs above.)");
   } else {
     console.log("\nAI SMOKE OK (live)");
   }

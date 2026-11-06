@@ -65,7 +65,7 @@ async function run(
   store.setChecker(reportId, outcome.checker);
   store.setStatus(reportId, "verified");
 
-  // Step 10: evidence report — one grounded Gemini call, generated in the
+  // Step 10: evidence report — one grounded OpenRouter call, generated in the
   // BACKGROUND so a slow model never delays the payout. It fills into the
   // envelope whenever it returns; the frontend polls and shows it then.
   // generateReport never throws (it falls back to the canned report), but we

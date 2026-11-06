@@ -63,13 +63,15 @@ integrate against. It is updated on every push to `b-backend`.
   chain. Verified: demo exploit → `verified, ruleBroken:"no-theft",
   severity:"critical", valueMovedUsdc:1000`; non-compiling → `rejected` + compiler
   error; harmless exploit → `verified, ruleBroken:null`.
-- **B5 AI report — Gemini (free tier)** via `@google/genai` structured output,
-  validated against a Zod schema; the measured result is the ground truth, the
-  model only describes it. Always falls back to a canned report on
-  no-key/parse-fail/error/timeout, flagged `fallback:true`. **Model: use
-  `gemini-3.8-flash`** (gemini-2.0-flash is retired — Google returns 404). The
-  code + key are verified reaching Google; set `GEMINI_MODEL=gemini-3.8-flash`
-  in `.env`. `npm run ai-smoke` tests it standalone. Health field `anthropic`→`ai`.
+- **B5 AI report — OpenRouter (free models)** via the OpenAI-compatible API
+  (direct fetch, no SDK), JSON structured output validated against a Zod schema;
+  the measured result is the ground truth, the model only describes it. Generated
+  in the background (never delays payout) and aborts cleanly on timeout. Always
+  falls back to a canned report on no-key/parse-fail/error/timeout, flagged
+  `fallback:true`. Set `OPENROUTER_API_KEY` (free: openrouter.ai/keys) and
+  optionally `OPENROUTER_MODEL` (default `deepseek/deepseek-chat-v3-0324:free`).
+  `npm run ai-smoke` tests it standalone. Health field `anthropic`→`ai`.
+  (Provider history: Claude → Gemini → OpenRouter; one-file swap.)
 - **B6 Arkiv — VERIFIED LIVE.** `npm run arkiv-smoke` wrote a real record to
   rabdi (entityKey `0x2276c5c5…`, tx `0xad76…`). Access key optional; funded
   `ARKIV_PRIVATE_KEY` is enough.
@@ -107,7 +109,7 @@ integrate against. It is updated on every push to `b-backend`.
 | Step | What it adds | Blocked on |
 |------|--------------|-----------|
 | **B6 wiring** | actually write to Arkiv | rabdi faucet funds + `ARKIV_ACCESS_KEY` + `ARKIV_PRIVATE_KEY` in `.env` (operator's `.env` still has the old `ARKIV_RPC_URL`, not `ARKIV_ACCESS_KEY`) |
-| **B5 live AI** | real Gemini report instead of fallback | set `GEMINI_MODEL=gemini-3.8-flash` in `.env` (the old `gemini-2.0-flash` 404s). Key verified reaching Google; couldn't complete in this env due to flaky outbound network |
+| **B5 live AI** | real report instead of fallback | add `OPENROUTER_API_KEY` to `.env` (free: openrouter.ai/keys). Optionally pick another free model via `OPENROUTER_MODEL` |
 | **B7 happy path** | a real `verified:true` | needs a real Simulator proof via C's widget; the gate itself is verified live (blocks unverified submits). **C:** drop your Next verify route, POST the proof to `/verify-human` |
 | **B8** remaining docs | consolidate all four `/arkiv/*.md` onto the submission branch, World debrief, root `AI_USAGE.md`, 3-min video | team |
 
@@ -139,6 +141,7 @@ integrate against. It is updated on every push to `b-backend`.
 
 ## Changelog
 
+- **openrouter** — swapped the report provider to OpenRouter (free models, OpenAI-compatible); removed @google/genai.
 - **e2e** — full live money path verified on Sepolia (checker fork block 12078095 → 1000 USDC theft → 50 USDC paid on-chain → public record); B6 Arkiv verified live; payout now checks receipt status; Gemini model → gemini-3.8-flash; added `ai-smoke`.
 - **gemini** — swapped the evidence-report provider from Anthropic to Gemini (free tier); Arkiv access key now optional; health `anthropic`→`ai`.
 - **B3** — checker forks live Sepolia against the deployed vault (verified: real forkBlock, 1000 USDC measured); reportId now unique across restarts.

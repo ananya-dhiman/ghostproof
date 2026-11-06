@@ -11,12 +11,12 @@ Person B. What that involved:
   the `forge test --json` parsing. Claude also caught that a classic re-entrancy
   demo does not work against a plain ERC-20 and aligned the checker to Person A's
   actual access-control bug and `run(VulnerableVault)` entry point.
-- **The AI evidence report:** wired Gemini (free tier) via `@google/genai`
-  structured output (`responseSchema`), validated against a Zod schema, with a
-  canned fallback so the demo never hangs on a model call. (An earlier version
-  used `claude-haiku-5-5`; we switched the runtime provider to Gemini's free
-  tier — the report is grounded and semi-templated, so provider choice is not
-  quality-critical.)
+- **The AI evidence report:** wired via OpenRouter (OpenAI-compatible gateway,
+  free models) with JSON structured output, validated against a Zod schema and a
+  canned fallback so the demo never hangs on a model call. (Provider was swapped
+  during the build — Claude → Gemini → OpenRouter; the report is grounded and
+  semi-templated, so the specific model is not quality-critical, and the provider
+  is a one-file change behind the same interface.)
 - **On-chain payout and reads:** the viem clients and the `settleReport` /
   `getConfig` calls against Person A's `BountyPool` ABI.
 - **Arkiv:** the record writer against `@arkiv-network/sdk`, after reading the
@@ -31,8 +31,8 @@ than claimed as working.
 
 ## Runtime AI (the product itself)
 
-The deployed product makes **one** AI call per report: a single Gemini call
-(free tier) that turns the checker's measured numbers into a plain-language
+The deployed product makes **one** AI call per report: a single OpenRouter call
+(free model) that turns the checker's measured numbers into a plain-language
 evidence report for the company. The AI only *describes* a result that was
 already measured on-chain — it never decides the severity that triggers a
 payout. That number comes from the fork plus the company's pre-written rule.
