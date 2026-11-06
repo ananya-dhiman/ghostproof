@@ -9,7 +9,7 @@ Read it with: `git show origin/a-contracts:STATUS.md`
 > This file lives on `a-contracts` only — deliberately not on `main`.
 > Do not merge `a-contracts` into `main` without Person A's explicit go-ahead.
 
-- **Last updated:** 2026-11-06 ~21:40 IST — Arkiv friction.md + reach.md written
+- **Last updated:** 2026-11-06 ~22:00 IST — Arkiv docs + LICENSE on `main`; key sent to B
 - **Owner:** Person A (contracts), Solidity/Foundry, folder `/contracts`
 - **Submissions close:** Sat 2026-11-07, 09:00 IST (partner judging 09:30–12:30)
 
@@ -73,28 +73,41 @@ signature is `function run(VulnerableVault vault) external`.**
 - [x] **Settler decided** — B reuses the deployer wallet; no on-chain change needed
 - [x] Cross-checked `b-backend`: vendored contracts in sync, types diff reviewed
 - [x] **Judge docs:** `/arkiv/friction.md` + `/arkiv/reach.md` written (B wrote the other two)
+- [x] **All four Arkiv judge docs copied onto `main`** (B's two + A's two), without merging
+      B's `shared/types.ts` — that stays on hold
+- [x] **MIT `LICENSE` added to `main`** — the EF CROPS prize requires an OSS license and the
+      README already claimed MIT with no licence file present
+- [x] **Wallet key sent to Person B** (out of band) — B's on-chain payout is unblocked
+- [x] **Secret scan: clean.** No `.env`, no `PRIVATE_KEY` value, no `contracts/cache/` or
+      `broadcast/` in any branch or anywhere in history — safe to make the repo public
 
-## 🔴 Submission risk — the four Arkiv docs are split across branches
+## 🔴 Submission risk — the repo is PRIVATE
 
-Arkiv scores **25% each** on four files. Right now:
+`ananya-dhiman/ghostproof` is currently a **private** repo. The EF CROPS prize requires a
+**public** repo under a free open-source license, and ETHGlobal judges have to be able to open
+it. **The repo owner must flip it to public before submitting.**
 
-| Branch | Has |
+**Safe to do:** every branch and the full history were scanned — no `.env`, no `PRIVATE_KEY`
+value, and `contracts/cache/` (which holds the deploy key locally) was never committed. Nothing
+sensitive becomes visible when it goes public.
+
+## 🟡 Still missing from `main` — judges only look at `main`
+
+| Missing | Who |
 |---|---|
-| `main` | **none** |
-| `a-contracts` | `friction.md`, `reach.md` |
-| `b-backend` | `why-arkiv.md`, `how-you-use-arkiv.md` |
+| B's `backend/` code | B — branch merge, on hold |
+| C's `frontend/` code | C — branch merge, on hold (C has also drifted, see below) |
+| Root `AI_USAGE.md` — the Classic track requires documenting AI use | team (B has `backend/AI_USAGE.md` only) |
+| World ID integration debrief (World prize requirement) | C / B |
+| Demo video, **3 minutes or less** (EF CROPS requirement) | team |
 
-**All four must be on the submitted branch before 09:00.** Nothing is scored from a side branch.
-
-Also: both of my docs state the Arkiv write path is *code-complete but not verified live*. If B
-gets `ARKIV_ACCESS_KEY` + faucet funds and `npm run arkiv-smoke` passes, those two sentences
-(one in each file) should be updated to say it is verified.
+✅ Already on `main`: contracts, ABIs, deployed addresses, the four Arkiv docs, the README CROPS
+section, and the MIT LICENSE.
 
 ## ⬜ Open — Person A
 
 | Item | Blocked on |
 |---|---|
-| Send B the `PRIVATE_KEY` + `SEPOLIA_RPC_URL` | **Person A** — out-of-band message, not the repo |
 | Decide whether B's `shared/types.ts` goes to `main` so C can use it | **Person A** — see below |
 | Optional: `setSettler(<B's own wallet>)` | B providing an address |
 
