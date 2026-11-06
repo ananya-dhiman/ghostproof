@@ -15,6 +15,7 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureForgeStd } from "../../scripts/setup-sandbox.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const TEMPLATE_DIR = path.resolve(here, "../../sandbox-template");
@@ -155,6 +156,17 @@ export async function buildSandbox(
   contractName: string,
   opts: SandboxOptions = {},
 ): Promise<Sandbox> {
+  // forge-std is gitignored, so a fresh clone has none and every submission would
+  // fail with a confusing solc "Source not found" error. Install it on first use
+  // (postinstall normally does it) and fail loudly and usefully if we cannot.
+  if (!(await ensureForgeStd())) {
+    throw new Error(
+      "checker sandbox is not set up: forge-std is missing from backend/sandbox-template/lib. " +
+        "Run `npm run setup-sandbox` in backend/, or " +
+        "`cd backend/sandbox-template && forge install foundry-rs/forge-std`.",
+    );
+  }
+
   const dir = await mkdtemp(path.join(os.tmpdir(), "gp-run-"));
   try {
     await cp(path.join(TEMPLATE_DIR, "src"), path.join(dir, "src"), {

@@ -13,7 +13,9 @@
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke.ts",
     "arkiv-smoke": "tsx scripts/arkiv-smoke.ts",
-    "ai-smoke": "tsx scripts/ai-smoke.ts"
+    "ai-smoke": "tsx scripts/ai-smoke.ts",
+    "setup-sandbox": "tsx scripts/setup-sandbox.ts",
+    "postinstall": "tsx scripts/setup-sandbox.ts"
   },
   "dependencies": {
     "@arkiv-network/sdk": "^1.0.1",
