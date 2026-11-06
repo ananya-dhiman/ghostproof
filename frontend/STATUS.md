@@ -1,10 +1,10 @@
-# Frontend progress — Person C (`c-frontend`)
+# Frontend status — Person C (`c-frontend`)
 
 > **For teammates and their Claude:** this file is the source of truth for what the frontend has
 > done and what it expects from you. It is updated on **every push** to `c-frontend`.
 > Read "Needs from Person A / B" before changing anything the frontend depends on.
 
-**Last updated:** 2026-11-06 · **Latest pushed commit before this update:** `dd50a86` (dark theme)
+**Last updated:** 2026-11-06 · **Latest pushed commit before this update:** `7305f41` (checklist added)
 **PR into main:** not opened yet
 
 ---
@@ -78,5 +78,7 @@ npm run dev                  # http://localhost:3000
 ```
 
 ## Changelog (newest first)
+- **2026-11-06**: renamed this file from PROGRESS.md to STATUS.md
+- **2026-11-06** · `7305f41`: added this checklist (as PROGRESS.md)
 - **2026-11-06** · `dd50a86`: flipped to dark theme (black page, yellow ink), role-based colour tokens, fixed sticker overlaps
 - **2026-11-06** · `09e6498`: first frontend: theme, ghost stickers, 3 screens + landing, World ID + submit routes, demo-data fallback
