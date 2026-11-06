@@ -3,66 +3,83 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
-import type { CheckerResult } from "@shared/types";
+import type { HealthResponse, ReportEnvelope } from "@shared/types";
 import { Ghost, Boo } from "@/components/Ghost";
 import { ConnectButton } from "@/components/ConnectButton";
 import { WorldIdGate } from "@/components/WorldIdGate";
 import { DemoFlag, SealedNote, SeverityTag } from "@/components/Bits";
-import { fetchReport, submitExploit, type ReportView } from "@/lib/api";
+import { fetchHealth, fetchReport, submitExploit } from "@/lib/api";
 import { DEMO_EXPLOIT } from "@/lib/mock";
 import { BOUNTY, ruleName } from "@/lib/rules";
+import { sepoliaTx } from "@/lib/chain";
 import { short, usd } from "@/lib/format";
 
-type Phase = "idle" | "checking" | "done" | "error";
+type StepState = "todo" | "active" | "done" | "failed";
+// Note: "verified" is NOT final. The backend passes through it on the way to "base-paid"
+// (checker done, payment pending), so we decide from the data, not the status name.
+const STOPPED = new Set(["rejected", "duplicate", "error"]);
+function settled(e: ReportEnvelope | null) {
+  if (!e) return false;
+  if (STOPPED.has(e.status) || e.status === "bonus-added") return true;
+  if (e.checker && !e.checker.ruleBroken) return !!e.report; // ran, broke nothing
+  return !!e.payout && !!e.report;
+}
 
 export default function HackerPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const { address, isConnected } = useAccount();
+  const [health, setHealth] = useState<HealthResponse | null | undefined>(undefined);
   const [nullifier, setNullifier] = useState<string | null>(null);
+  const [simulatedId, setSimulatedId] = useState(false);
   const [source, setSource] = useState("");
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [result, setResult] = useState<CheckerResult | null>(null);
-  const [view, setView] = useState<ReportView | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [env, setEnv] = useState<ReportEnvelope | null>(null);
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const connected = mounted && isConnected && !!address;
 
-  // Poll the report until the base payout + evidence report are in.
   useEffect(() => {
-    if (!result?.verified) return;
+    fetchHealth().then(setHealth);
+  }, []);
+
+  // Poll GET /report/:id every 2s until it settles (and the AI report has arrived).
+  useEffect(() => {
+    if (!reportId) return;
     let stop = false;
     let tries = 0;
+    setPolling(true);
     const tick = async () => {
-      const r = await fetchReport(result.reportId);
+      const r = await fetchReport(reportId);
       if (stop) return;
-      setView(r.data);
-      const finished = r.data.record?.status && r.data.report;
-      if (!finished && tries++ < 40) setTimeout(tick, 2500);
+      if (r.data) setEnv(r.data);
+      if (!settled(r.data) && tries++ < 120) setTimeout(tick, 2000);
+      else setPolling(false);
     };
-    const t = setTimeout(tick, 1200);
+    tick();
     return () => {
       stop = true;
-      clearTimeout(t);
     };
-  }, [result]);
+  }, [reportId]);
 
   async function onSubmit() {
     if (!address || !nullifier || !source.trim()) return;
-    setPhase("checking");
+    setSubmitting(true);
     setError(null);
-    setResult(null);
-    setView(null);
+    setEnv(null);
+    setReportId(null);
     try {
-      const r = await submitExploit({ source, hackerAddress: address, worldIdNullifier: nullifier });
-      setResult(r.result);
+      const r = await submitExploit({ bountyId: BOUNTY.id, hackerAddress: address, worldIdNullifier: nullifier, exploitSource: source });
       setDemo(r.demo);
-      setPhase("done");
+      setReportId(r.reportId);
     } catch (e) {
       setError((e as Error).message);
-      setPhase("error");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -70,7 +87,15 @@ export default function HackerPage() {
     if (f) setSource(await f.text());
   }
 
-  const paid = view?.record?.status === "base-paid" || view?.record?.status === "bonus-added";
+  const s = env?.status;
+  const c = env?.checker;
+  const stopped = STOPPED.has(s ?? "");
+  const noRule = !!c && !c.ruleBroken;
+  const payoutStuck = !!c?.ruleBroken && !env?.payout && !polling;
+  const replay: StepState = !reportId ? "todo" : c ? "done" : stopped ? "failed" : "active";
+  const rule: StepState = !c ? (stopped ? "failed" : "todo") : c.ruleBroken ? "done" : "failed";
+  const paid: StepState = env?.payout ? "done" : payoutStuck ? "failed" : c?.ruleBroken && !stopped ? "active" : "todo";
+  const report: StepState = env?.report ? "done" : env?.payout ? "active" : "todo";
 
   return (
     <div className="container page">
@@ -80,11 +105,20 @@ export default function HackerPage() {
           <h1 style={{ fontSize: "clamp(2.2rem, 5vw, 3.8rem)" }}>Submit a bug</h1>
           <p style={{ maxWidth: 620 }}>
             Bounty <span className="code">{BOUNTY.id}</span> · {BOUNTY.name}. Send your attack as a test. If it
-            breaks one of the company&apos;s rules, you get the base reward right away.
+            breaks one of the company&apos;s rules, you get the base reward right away, on-chain.
           </p>
         </div>
         <Ghost variant="shades" size={130} rotate={8} float />
       </div>
+
+      {health === null && (
+        <div className="callout" style={{ marginBottom: 24 }}>
+          <Ghost variant="spooked" size={50} />
+          <div>
+            <strong>The checker is offline.</strong> Submissions will run as a clearly marked offline demo until it&apos;s back.
+          </div>
+        </div>
+      )}
 
       <div className="grid-2" style={{ alignItems: "start", gap: 32 }}>
         {/* ---------- left: the form ---------- */}
@@ -105,19 +139,28 @@ export default function HackerPage() {
           <StepCard n={2} title="Prove you're a real human" done={!!nullifier} locked={!connected}>
             {nullifier ? (
               <p>
-                Verified once with World ID. ID <span className="code">{short(nullifier, 8, 6)}</span>
+                {simulatedId ? "Simulated World ID check." : "Verified once with World ID."} ID{" "}
+                <span className="code">{short(nullifier, 8, 6)}</span>
               </p>
             ) : (
               <>
                 <p style={{ marginBottom: 12 }}>One person, one submission. Stops bots and copy-paste farms.</p>
-                <WorldIdGate signal={address ?? ""} disabled={!connected} onVerified={setNullifier} />
+                <WorldIdGate
+                  backendWorldId={!!health?.subsystems.worldId}
+                  disabled={!connected}
+                  onVerified={(n, sim) => {
+                    setNullifier(n);
+                    setSimulatedId(sim);
+                  }}
+                />
               </>
             )}
           </StepCard>
 
-          <StepCard n={3} title="Paste your attack" locked={!nullifier} done={phase === "done"}>
+          <StepCard n={3} title="Paste your attack" locked={!nullifier} done={!!reportId}>
             <p style={{ marginBottom: 12 }}>
-              A Solidity test with <span className="code">runExploit()</span>. It runs from a fresh account with no
+              A Solidity contract with <span className="code">function run(VulnerableVault vault) external</span>. Import
+              the target as <span className="code">target/VulnerableVault.sol</span>. It runs from a fresh account with no
               permissions.
             </p>
             <div className="row" style={{ marginBottom: 12 }}>
@@ -129,11 +172,11 @@ export default function HackerPage() {
               </button>
               <input ref={fileRef} type="file" accept=".sol,text/plain" hidden onChange={(e) => onFile(e.target.files?.[0])} />
             </div>
-            <label className="label" htmlFor="src">Exploit.t.sol</label>
+            <label className="label" htmlFor="src">Exploit.sol</label>
             <textarea
               id="src"
               className="textarea"
-              placeholder="contract Exploit { function runExploit() external { … } }"
+              placeholder="contract Exploit { function run(VulnerableVault vault) external { … } }"
               value={source}
               onChange={(e) => setSource(e.target.value)}
               disabled={!nullifier}
@@ -143,12 +186,12 @@ export default function HackerPage() {
               <button
                 className="btn big accent"
                 onClick={onSubmit}
-                disabled={!nullifier || !source.trim() || phase === "checking"}
+                disabled={!nullifier || !source.trim() || submitting || polling}
               >
-                {phase === "checking" ? "Checking…" : "Submit attack →"}
+                {submitting ? "Sending…" : "Submit attack →"}
               </button>
-              {error && <div className="err">{error}</div>}
             </div>
+            {error && <div className="err" style={{ marginTop: 12 }}>{error}</div>}
           </StepCard>
         </div>
 
@@ -157,73 +200,93 @@ export default function HackerPage() {
           <div className="card hazard-top" style={{ marginTop: 14 }}>
             <div className="card-title">
               <h3>Live status</h3>
-              <DemoFlag show={demo} />
+              <div className="row" style={{ gap: 6 }}>
+                {reportId && <span className="tag flat mono">{reportId}</span>}
+                <DemoFlag show={demo} />
+              </div>
             </div>
 
-            {phase === "idle" && !result && (
+            {!reportId ? (
               <div className="row" style={{ gap: 16, alignItems: "center" }}>
                 <Ghost variant="sleepy" size={90} />
                 <p className="muted">Nothing submitted yet. Your result will show up here as it happens.</p>
               </div>
-            )}
-
-            {(phase !== "idle" || result) && (
+            ) : (
               <div className="steps">
-                <TrackStep state="done" title="Submitted" body="Your test is in." />
+                <TrackStep state="done" title="Submitted" body="Your test is in the queue." />
                 <TrackStep
-                  state={phase === "checking" ? "active" : result ? "done" : phase === "error" ? "failed" : "todo"}
+                  state={replay}
                   title="Replaying on a copy of the chain"
-                  body={result ? `Ran on a fork at block ${result.forkBlock.toLocaleString()}.` : "Measuring how much money moved."}
+                  body={
+                    c ? `Ran on a copy of Sepolia at block ${c.forkBlock.toLocaleString()}. ${usd(c.valueMovedUsdc)} moved.`
+                    : stopped ? env?.error ?? "Stopped."
+                    : "Measuring how much money moves. This can take up to a minute."
+                  }
                 />
                 <TrackStep
-                  state={!result ? "todo" : result.verified ? "done" : "failed"}
+                  state={rule}
                   title="Checking the company's rules"
                   body={
-                    !result ? "Waiting for the replay." : result.verified ? (
+                    !c ? (stopped ? "Didn't get this far." : "Waiting for the replay.")
+                    : c.ruleBroken ? (
                       <>
-                        Broke <strong>{ruleName(result.ruleBroken)}</strong> · <SeverityTag severity={result.severity} /> ·{" "}
-                        {usd(result.valueMovedUsdc)} moved
+                        Broke <strong>{ruleName(c.ruleBroken)}</strong> · <SeverityTag severity={c.severity} />
                       </>
                     ) : (
-                      "No rule was broken, so nothing is paid. The company never sees this."
+                      "No rule was broken, so nothing is paid automatically."
                     )
                   }
                 />
-                {result?.verified !== false && (
-                  <TrackStep
-                    state={paid ? "done" : result?.verified ? "active" : "todo"}
-                    title="Base reward paid"
-                    body={paid ? `${usd(view!.record!.paidUsdc)} sent to your wallet, automatically.` : "Paying from the locked pool…"}
-                  />
-                )}
-                {result?.verified !== false && (
-                  <TrackStep
-                    state={view?.report ? "done" : paid ? "active" : "todo"}
-                    title="Evidence report written"
-                    body={view?.report ? "The company now has a plain-language write-up." : "An AI describes the bug. It never decides pay."}
-                  />
+                {!noRule && !stopped && (
+                  <>
+                    <TrackStep
+                      state={paid}
+                      title="Base reward paid"
+                      body={
+                        env?.payout ? (
+                          <>
+                            {usd(env.payout.paidUsdc)} sent to your wallet.{" "}
+                            {!demo && (
+                              <a href={sepoliaTx(env.payout.txHash)} target="_blank" rel="noreferrer">See the transaction</a>
+                            )}
+                          </>
+                        ) : payoutStuck ? (
+                          "The rule broke, but the payment hasn't gone through yet. The finding is saved; the team will pay it."
+                        ) : (
+                          "Paying from the locked pool on Sepolia…"
+                        )
+                      }
+                    />
+                    <TrackStep
+                      state={report}
+                      title="Evidence report written"
+                      body={
+                        env?.report
+                          ? env.report.fallback ? "Written (from a prepared template; the live AI was unavailable)." : "Written. The company now has a plain-language summary."
+                          : "An AI describes the bug. It never decides the pay."
+                      }
+                    />
+                  </>
                 )}
               </div>
             )}
 
-            {paid && result && (
-              <div className="card flat" style={{ marginTop: 20, display: "flex", gap: 16, alignItems: "center", boxShadow: "var(--shadow-sm)" }}>
+            {env?.payout && (
+              <div className="card accent" style={{ marginTop: 20, display: "flex", gap: 16, alignItems: "center", boxShadow: "var(--shadow-sm)" }}>
                 <Ghost variant="bag" size={80} rotate={-8} />
                 <div className="stack" style={{ gap: 8 }}>
-                  <strong style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem" }}>
-                    +{usd(view!.record!.paidUsdc)}
-                  </strong>
-                  <span>Any bigger bonus is up to the company.</span>
-                  <Link className="btn small accent" href={`/company?report=${result.reportId}`}>
-                    View report {result.reportId}
+                  <strong style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem" }}>+{usd(env.payout.paidUsdc)}</strong>
+                  <span>Paid automatically. Any bigger bonus is up to the company.</span>
+                  <Link className="btn small" href={`/company?report=${env.reportId}`}>
+                    See what the company sees
                   </Link>
                 </div>
               </div>
             )}
-            {result && !result.verified && (
+            {(stopped || noRule) && (
               <div className="row" style={{ marginTop: 16 }}>
                 <Ghost variant="spooked" size={80} />
-                <Boo text="no rule broken" rotate={4} />
+                <Boo text={s === "duplicate" ? "already found!" : noRule ? "no rule broken" : "not accepted"} rotate={4} />
               </div>
             )}
           </div>
@@ -234,19 +297,7 @@ export default function HackerPage() {
   );
 }
 
-function StepCard({
-  n,
-  title,
-  done,
-  locked,
-  children,
-}: {
-  n: number;
-  title: string;
-  done?: boolean;
-  locked?: boolean;
-  children: React.ReactNode;
-}) {
+function StepCard({ n, title, done, locked, children }: { n: number; title: string; done?: boolean; locked?: boolean; children: React.ReactNode }) {
   return (
     <section className="card" style={{ opacity: locked ? 0.55 : 1, background: done ? "var(--raised)" : "var(--surface)" }}>
       <div className="card-title" style={{ justifyContent: "flex-start" }}>
@@ -260,7 +311,7 @@ function StepCard({
   );
 }
 
-function TrackStep({ state, title, body }: { state: "todo" | "active" | "done" | "failed"; title: string; body: React.ReactNode }) {
+function TrackStep({ state, title, body }: { state: StepState; title: string; body: React.ReactNode }) {
   return (
     <div className={`step ${state}`}>
       <div className="step-dot">{state === "done" ? "✓" : state === "failed" ? "✕" : state === "active" ? "…" : ""}</div>

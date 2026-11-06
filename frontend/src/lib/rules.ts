@@ -1,5 +1,5 @@
 // The company's rules, written BEFORE any bug is seen. Mirrors contracts/src/rules/Rules.sol
-// (Person A). The UI only shows these; they are not edited here.
+// (Person A) and backend/fixtures/rules.json (Person B). The UI only shows these.
 import type { SeverityName } from "@shared/types";
 
 export interface Rule {
@@ -19,17 +19,24 @@ export const RULES: Rule[] = [
     mandatory: true,
   },
   {
-    id: "accounting-intact",
+    id: "fee-accounting",
     name: "Books must balance",
-    plain: "The vault's recorded total must always equal the money it really holds.",
+    plain: "The vault's recorded balances must always add up to the tokens it really holds.",
     severity: "medium",
     mandatory: false,
   },
 ];
 
-export const ruleName = (id: string | null) => RULES.find((r) => r.id === id)?.name ?? id ?? "None";
+export const ruleName = (id: string | null | undefined) => RULES.find((r) => r.id === id)?.name ?? id ?? "None";
 
 export const BOUNTY = { id: "vault-01", name: "Demo Vault", company: "Acme Vaults (demo)" };
 
-/** Demo numbers from PLAN.md, used until the pool contract is live. */
-export const DEMO_POOL = { balance: 2000, limit: 50, monthlyCap: 500, medium: 50, high: 50, critical: 50, suggestedCriticalBonus: 500 };
+/** The deployed numbers (Person A's STATUS.md). Shown only if the chain can't be read. */
+export const DEMO_POOL = {
+  balance: 2000,
+  limit: 50,
+  monthlyCap: 1000,
+  medium: 50,
+  high: 200,
+  critical: 500,
+};

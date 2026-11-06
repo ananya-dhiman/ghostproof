@@ -4,40 +4,34 @@
 > expects from Person A / B, and what's next, and it's updated on every push.
 
 Next.js 15 + React 19, wagmi/viem for Sepolia, World IDKit for proof-of-human. Neo-brutalist
-yellow/black theme with hand-drawn SVG ghost stickers (`src/components/Ghost.tsx`).
+black/yellow theme with hand-drawn SVG ghost stickers (`src/components/Ghost.tsx`).
+
+## Run it (with the real backend)
 
 ```bash
-cd frontend
-npm install
-cp .env.example .env.local   # every value is optional
-npm run dev                  # http://localhost:3000
+# terminal 1: the checker backend (Person B). Mock mode by default, no keys needed.
+cd backend && npm install && npm run start      # http://localhost:8787
+
+# terminal 2: this app
+cd frontend && npm install && npm run dev        # http://localhost:3000
 ```
 
-With **no env set** the whole app runs on demo data, and every screen shows a "Demo data" flag so we
-never pass mock numbers off as real.
+Always build with `npm run build` (Turbopack). Plain `next build` (webpack) fails on a wallet
+library dependency.
 
-## Screens
-| Route | What it shows |
+## How it connects
+
+| Screen | Talks to |
 | --- | --- |
-| `/` | Pitch + how it works |
-| `/hacker` | Connect wallet → World ID → paste/upload exploit → live status (checking → rule broken → base paid → report) |
-| `/company` | Pool balance, auto-pay limit, monthly cap, rules, incoming reports (scorecard + AI evidence report), **Add bonus** |
-| `/record` | Public track record from Arkiv (via backend `GET /records`) |
+| `/hacker` | backend `GET /health`, `POST /verify-human`, `POST /submit`, then polls `GET /report/:id` every 2 s |
+| `/company` | backend `GET /reports` (inbox); **Sepolia directly** for pool balance, `getConfig()`, `paidThisMonth()` and each report's `reports(keccak256(id))`; `addBonus` from the company wallet |
+| `/record` | backend `GET /records` (the public record written to Arkiv) |
 
-## Server routes (in this app)
-- `POST /api/verify`: verifies the World ID proof server-side (`verifyCloudProof`). If
-  `NEXT_PUBLIC_WLD_APP_ID` is unset it hands out a clearly labelled simulated nullifier.
-- `POST /api/submit`: refuses unverified humans and a **second submission from the same nullifier**,
-  then forwards to the backend's `POST /submit`. Without a backend it simulates the checker.
-  State is in memory (resets on restart).
-
-## Open questions for the team (search for `TODO(B)`)
-- **B:** `/submit` is sent as multipart: file `exploit` (`Exploit.t.sol`) + field `metadata` (JSON
-  `Submission`). Response may be a `CheckerResult` or `{ result }`.
-- **B:** `GET /report/:id` may return `{ result, report, record }` or a flat `CheckerResult`.
-  `GET /records` may return an array or `{ records }`.
-- **B:** on-chain report id is assumed to be `keccak256(reportId)` (see `src/lib/chain.ts`).
-- **A:** once `shared/config.ts` has real addresses, the company screen reads the live pool balance
-  and `getConfig()` and "Add bonus" sends a real `addBonus(bytes32,uint256)` transaction.
+- Addresses come from `shared/config.ts`; types from `shared/types.ts`. Nothing is hard-coded.
+- World ID: the widget runs here, but the **backend** verifies the proof and blocks a second
+  submission from the same person. If the backend has no `WORLD_APP_ID`, the hacker screen says so
+  and uses a clearly labelled simulated check.
+- If the backend is unreachable, screens fall back to demo data and show **"Demo data · backend
+  offline"**. Pool numbers still come live from the chain.
 
 Test USDC on Sepolia has no real value. Built with help from Claude Code (scaffolding, UI, wiring).

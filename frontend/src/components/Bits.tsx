@@ -1,26 +1,28 @@
-import type { ArkivReportRecord, SeverityName } from "@shared/types";
-import { STATUS_LABEL } from "@/lib/format";
+import type { SeverityName } from "@shared/types";
+import { STATUS_LABEL, type AnyStatus } from "@/lib/format";
 
 export function SeverityTag({ severity }: { severity: SeverityName | null | undefined }) {
   if (!severity) return <span className="tag">No severity</span>;
   return <span className={`tag sev-${severity}`}>{severity}</span>;
 }
 
-export function StatusTag({ status }: { status: ArkivReportRecord["status"] }) {
-  if (status === "rejected")
+export function StatusTag({ status }: { status: AnyStatus }) {
+  const label = STATUS_LABEL[status] ?? status;
+  if (status === "rejected" || status === "error" || status === "duplicate")
     return (
       <span className="tag hazard">
-        <span>{STATUS_LABEL[status]}</span>
+        <span>{label}</span>
       </span>
     );
-  return <span className={`tag ${status === "bonus-added" ? "accent" : "flat"}`}>{STATUS_LABEL[status]}</span>;
+  const cls = status === "bonus-added" || status === "base-paid" ? "accent" : "flat";
+  return <span className={`tag ${cls}`}>{label}</span>;
 }
 
 export function DemoFlag({ show, error }: { show: boolean; error?: string }) {
   if (!show) return null;
   return (
-    <span className="demo-flag" title={error ? `Backend unreachable: ${error}` : "Backend not configured"}>
-      👻 Demo data{error ? " (backend offline)" : ""}
+    <span className="demo-flag" title={error ? `Backend unreachable: ${error}` : undefined}>
+      👻 Demo data · backend offline
     </span>
   );
 }

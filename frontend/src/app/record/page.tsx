@@ -10,11 +10,13 @@ import { short, timeAgo, usd } from "@/lib/format";
 export default function RecordPage() {
   const [records, setRecords] = useState<ArkivReportRecord[] | null>(null);
   const [demo, setDemo] = useState<{ on: boolean; error?: string }>({ on: false });
+  const [source, setSource] = useState<string | null>(null);
 
   useEffect(() => {
     const load = () =>
       fetchRecords().then((r) => {
-        setRecords(r.data);
+        setRecords(r.data.records);
+        setSource(r.data.source);
         setDemo({ on: r.demo, error: r.error });
       });
     load();
@@ -37,7 +39,14 @@ export default function RecordPage() {
             Every report and what happened to it, stored on a shared public record anyone can read. A company
             can&apos;t quietly ghost a hacker here.
           </p>
-          <DemoFlag show={demo.on} error={demo.error} />
+          <div className="row">
+            {source && !demo.on && (
+              <span className={`tag ${source === "arkiv" ? "accent" : "flat"}`}>
+                {source === "arkiv" ? "Read from Arkiv" : "Checker's copy of what it wrote to Arkiv"}
+              </span>
+            )}
+            <DemoFlag show={demo.on} error={demo.error} />
+          </div>
         </div>
         <div className="row" style={{ alignItems: "end" }}>
           <Boo text="receipts!" rotate={-6} style={{ marginBottom: 90 }} />

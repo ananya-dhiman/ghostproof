@@ -11,8 +11,16 @@ export const timeAgo = (unixSeconds: number) => {
   return `${Math.floor(d / 86400)} d ago`;
 };
 
-export const STATUS_LABEL = {
+import type { ArkivReportRecord, ReportStatus } from "@shared/types";
+
+export type AnyStatus = ReportStatus | ArkivReportRecord["status"];
+
+export const STATUS_LABEL: Record<AnyStatus, string> = {
+  checking: "Checking",
+  verified: "No rule broken",
+  rejected: "Rejected",
+  duplicate: "Duplicate",
   "base-paid": "Base paid",
   "bonus-added": "Bonus added",
-  rejected: "Rejected",
-} as const;
+  error: "Error",
+};
