@@ -121,10 +121,10 @@ export default function HackerPage() {
               permissions.
             </p>
             <div className="row" style={{ marginBottom: 12 }}>
-              <button className="btn small white" onClick={() => fileRef.current?.click()} disabled={!nullifier}>
+              <button className="btn small raised" onClick={() => fileRef.current?.click()} disabled={!nullifier}>
                 Upload .sol
               </button>
-              <button className="btn small white" onClick={() => setSource(DEMO_EXPLOIT)} disabled={!nullifier}>
+              <button className="btn small raised" onClick={() => setSource(DEMO_EXPLOIT)} disabled={!nullifier}>
                 Load demo exploit
               </button>
               <input ref={fileRef} type="file" accept=".sol,text/plain" hidden onChange={(e) => onFile(e.target.files?.[0])} />
@@ -141,7 +141,7 @@ export default function HackerPage() {
             />
             <div className="row" style={{ marginTop: 16, justifyContent: "space-between" }}>
               <button
-                className="btn big dark"
+                className="btn big accent"
                 onClick={onSubmit}
                 disabled={!nullifier || !source.trim() || phase === "checking"}
               >
@@ -207,14 +207,14 @@ export default function HackerPage() {
             )}
 
             {paid && result && (
-              <div className="card yellow" style={{ marginTop: 20, display: "flex", gap: 16, alignItems: "center", boxShadow: "var(--shadow-sm)" }}>
+              <div className="card flat" style={{ marginTop: 20, display: "flex", gap: 16, alignItems: "center", boxShadow: "var(--shadow-sm)" }}>
                 <Ghost variant="bag" size={80} rotate={-8} />
                 <div className="stack" style={{ gap: 8 }}>
                   <strong style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem" }}>
                     +{usd(view!.record!.paidUsdc)}
                   </strong>
                   <span>Any bigger bonus is up to the company.</span>
-                  <Link className="btn small dark" href={`/company?report=${result.reportId}`}>
+                  <Link className="btn small accent" href={`/company?report=${result.reportId}`}>
                     View report {result.reportId}
                   </Link>
                 </div>
@@ -248,9 +248,9 @@ function StepCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="card" style={{ opacity: locked ? 0.55 : 1, background: done ? "var(--white)" : "var(--paper)" }}>
+    <section className="card" style={{ opacity: locked ? 0.55 : 1, background: done ? "var(--raised)" : "var(--surface)" }}>
       <div className="card-title" style={{ justifyContent: "flex-start" }}>
-        <span className="step-dot" style={{ background: done ? "var(--black)" : "var(--yellow)", color: done ? "var(--yellow)" : "var(--black)" }}>
+        <span className="step-dot" style={{ background: done ? "var(--ink)" : "var(--base)", color: done ? "var(--base)" : "var(--ink)" }}>
           {done ? "✓" : n}
         </span>
         <h3>{title}</h3>

@@ -13,7 +13,7 @@ export function StatusTag({ status }: { status: ArkivReportRecord["status"] }) {
         <span>{STATUS_LABEL[status]}</span>
       </span>
     );
-  return <span className={`tag ${status === "bonus-added" ? "black" : "yellow"}`}>{STATUS_LABEL[status]}</span>;
+  return <span className={`tag ${status === "bonus-added" ? "accent" : "flat"}`}>{STATUS_LABEL[status]}</span>;
 }
 
 export function DemoFlag({ show, error }: { show: boolean; error?: string }) {

@@ -28,7 +28,7 @@ export function WorldIdGate({
     return (
       <div className="stack" style={{ gap: 8 }}>
         <button
-          className="btn dark"
+          className="btn accent"
           disabled={disabled || busy}
           onClick={async () => {
             setBusy(true);
@@ -68,7 +68,7 @@ export function WorldIdGate({
         onError={(e) => setError(e.message || e.code)}
       >
         {({ open }: { open: () => void }) => (
-          <button className="btn dark" disabled={disabled} onClick={open}>
+          <button className="btn accent" disabled={disabled} onClick={open}>
             Verify with World ID
           </button>
         )}

@@ -29,18 +29,18 @@ export default function Home() {
               &ldquo;we&apos;ll get back to you&rdquo;.
             </p>
             <div className="row" style={{ gap: 16 }}>
-              <Link href="/hacker" className="btn big dark">
+              <Link href="/hacker" className="btn big accent">
                 Submit a bug →
               </Link>
-              <Link href="/company" className="btn big white">
+              <Link href="/company" className="btn big raised">
                 I run a bounty
               </Link>
             </div>
           </div>
 
           <div className="hero-art" style={{ position: "relative", minHeight: 420 }}>
-            <div className="card yellow" style={{ padding: 0, transform: "rotate(2deg)", boxShadow: "var(--shadow-lg)" }}>
-              <div style={{ background: "var(--black)", color: "var(--yellow)", padding: "10px 16px", display: "flex", justifyContent: "space-between" }}>
+            <div className="card flat" style={{ padding: 0, transform: "rotate(2deg)", boxShadow: "var(--shadow-lg)" }}>
+              <div style={{ background: "var(--ink)", color: "var(--base)", padding: "10px 16px", display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "space-between", paddingRight: 70 }}>
                 <strong>REPORT rep_003</strong>
                 <span className="mono">fork #7412388</span>
               </div>
@@ -48,13 +48,13 @@ export default function Home() {
                 <Line k="Rule broken" v="No theft" />
                 <Line k="Severity" v={<span className="tag sev-critical">critical</span>} />
                 <Line k="Money moved" v="1,000 USDC" />
-                <Line k="Base paid" v={<span className="tag black">50 USDC ✓</span>} />
-                <div style={{ border: "3px dashed var(--black)", padding: 12, background: "var(--white)", fontWeight: 700 }}>
+                <Line k="Base paid" v={<span className="tag accent">50 USDC ✓</span>} />
+                <div style={{ border: "3px dashed var(--ink)", padding: 12, background: "var(--raised)", fontWeight: 700 }}>
                   Paid automatically. Nobody had to say yes.
                 </div>
               </div>
             </div>
-            <div className="sticker-abs" style={{ top: -50, right: -10 }}>
+            <div className="sticker-abs" style={{ top: -96, right: -30 }}>
               <Ghost variant="bag" size={130} rotate={12} float />
             </div>
             <div className="sticker-abs" style={{ bottom: -40, left: -30 }}>
@@ -85,7 +85,7 @@ export default function Home() {
         </div>
         <div className="grid-2" style={{ gap: 28 }}>
           {HOW.map((s, i) => (
-            <div key={s.n} className="card lift" style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "center", background: i % 3 === 0 ? "var(--paper)" : i === 1 ? "var(--white)" : "var(--yellow)" }}>
+            <div key={s.n} className={`card lift ${i === 1 || i === 2 ? "accent" : ""}`} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "center" }}>
               <div className="stack" style={{ gap: 8 }}>
                 <span className="mono" style={{ fontWeight: 700 }}>{s.n}</span>
                 <h3>{s.title}</h3>
@@ -98,10 +98,10 @@ export default function Home() {
       </section>
 
       <section className="container" style={{ paddingBottom: 40 }}>
-        <div className="card black cta-row">
+        <div className="card accent cta-row">
           <Ghost variant="classic" size={90} rotate={-6} />
           <div className="stack" style={{ gap: 6 }}>
-            <h3 style={{ color: "var(--yellow)" }}>Every outcome is public</h3>
+            <h3 style={{ color: "var(--base)" }}>Every outcome is public</h3>
             <p className="muted">Paid, bonus, or rejected: each report lands on a shared public record (Arkiv) so anyone can check a company&apos;s track record.</p>
           </div>
           <Link href="/record" className="btn">See the record</Link>
@@ -113,7 +113,7 @@ export default function Home() {
 
 function Line({ k, v }: { k: string; v: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid var(--black)", paddingBottom: 8 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid var(--ink)", paddingBottom: 8 }}>
       <span style={{ fontWeight: 700, textTransform: "uppercase", fontSize: "0.8rem", letterSpacing: "0.06em" }}>{k}</span>
       <span style={{ fontFamily: "var(--font-display)" }}>{v}</span>
     </div>

@@ -104,8 +104,8 @@ function Company() {
           <span className="kicker">Company dashboard</span>
           <h1 style={{ fontSize: "clamp(2.2rem, 5vw, 3.8rem)" }}>{BOUNTY.company}</h1>
           <div className="row">
-            <span className="tag yellow">Bounty {BOUNTY.id}</span>
-            <span className={`tag ${pool.live ? "black" : ""}`}>{pool.live ? "Live on Sepolia" : "Pool: demo numbers"}</span>
+            <span className="tag flat">Bounty {BOUNTY.id}</span>
+            <span className={`tag ${pool.live ? "accent" : ""}`}>{pool.live ? "Live on Sepolia" : "Pool: demo numbers"}</span>
             <DemoFlag show={demo.on} error={demo.error} />
           </div>
         </div>
@@ -127,11 +127,11 @@ function Company() {
       </div>
       <div className="grid-2" style={{ marginBottom: 44 }}>
         {RULES.map((r) => (
-          <div key={r.id} className={`card ${r.mandatory ? "yellow" : ""}`}>
+          <div key={r.id} className={`card ${r.mandatory ? "flat" : ""}`}>
             <div className="card-title">
               <h3>{r.name}</h3>
               <div className="row" style={{ gap: 6 }}>
-                {r.mandatory && <span className="tag black">Mandatory</span>}
+                {r.mandatory && <span className="tag accent">Mandatory</span>}
                 <SeverityTag severity={r.severity} />
               </div>
             </div>
@@ -163,8 +163,8 @@ function Company() {
               className={`card lift ${selected === r.reportId ? "is-selected" : ""}`}
               style={{
                 textAlign: "left", cursor: "pointer", font: "inherit", padding: 16,
-                background: selected === r.reportId ? "var(--black)" : "var(--paper)",
-                color: selected === r.reportId ? "var(--yellow)" : "var(--black)",
+                background: selected === r.reportId ? "var(--ink)" : "var(--surface)",
+                color: selected === r.reportId ? "var(--base)" : "var(--ink)",
               }}
             >
               <div className="row" style={{ justifyContent: "space-between" }}>
@@ -212,7 +212,7 @@ function ReportDetail({
     <div className="stack" style={{ gap: 24 }}>
       {/* scorecard: facts measured by the checker, no AI */}
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ background: "var(--black)", color: "var(--yellow)", padding: "12px 20px" }} className="row">
+        <div style={{ background: "var(--ink)", color: "var(--base)", padding: "12px 20px" }} className="row">
           <strong style={{ fontFamily: "var(--font-display)", textTransform: "uppercase" }}>Scorecard · {result.reportId}</strong>
           <span style={{ marginLeft: "auto", fontSize: "0.8rem" }}>Measured on a copy of the chain. No AI.</span>
         </div>
@@ -231,13 +231,13 @@ function ReportDetail({
       </div>
 
       {/* evidence report: AI describes, never decides */}
-      <div className="card yellow" style={{ position: "relative" }}>
-        <div className="sticker-abs" style={{ top: -36, right: -18 }}>
+      <div className="card flat" style={{ position: "relative" }}>
+        <div className="sticker-abs" style={{ top: -62, right: -26 }}>
           <Ghost variant="detective" size={80} rotate={10} />
         </div>
         <div className="card-title">
           <h3>Evidence report</h3>
-          <span className="tag white">Written by AI · describes only</span>
+          <span className="tag raised">Written by AI · describes only</span>
         </div>
         {!report ? (
           <p>The report is still being written…</p>
@@ -280,7 +280,7 @@ function ReportDetail({
 
 function Fact({ k, v }: { k: string; v: React.ReactNode }) {
   return (
-    <div style={{ border: "2px solid var(--black)", padding: "10px 12px", background: "var(--white)" }}>
+    <div style={{ border: "2px solid var(--ink)", padding: "10px 12px", background: "var(--raised)" }}>
       <div className="stat-label">{k}</div>
       <div style={{ fontFamily: "var(--font-display)", marginTop: 4 }}>{v}</div>
     </div>
@@ -338,9 +338,9 @@ function BonusBox({
   }
 
   return (
-    <div className="card black">
+    <div className="card accent">
       <div className="card-title">
-        <h3 style={{ color: "var(--yellow)" }}>Add a bonus</h3>
+        <h3 style={{ color: "var(--base)" }}>Add a bonus</h3>
         <Ghost variant="bag" size={60} rotate={8} />
       </div>
       <p className="muted" style={{ marginBottom: 14 }}>

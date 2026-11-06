@@ -26,7 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <span>
                 <strong>GHOSTPROOF</strong> · Ethereum Sepolia testnet · test USDC has no real value
               </span>
-              <span className="muted" style={{ color: "#d8d29a" }}>
+              <span className="muted">
                 No trackers. Open source (MIT).
               </span>
             </div>
