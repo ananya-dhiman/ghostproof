@@ -15,12 +15,16 @@ import type { CheckerResult, EvidenceReport, SeverityName } from "../types.js";
 export function cannedReport(checker: CheckerResult): EvidenceReport {
   const severity: SeverityName = checker.severity ?? "medium";
   const value = checker.valueMovedUsdc;
+  const where =
+    checker.forkBlock > 0
+      ? `a copy of the chain at block ${checker.forkBlock}`
+      : "a sandbox copy of the chain";
 
   return {
     summary:
       `An attacker starting from a fresh account with no permissions ended up ` +
       `holding ${value} test USDC that belonged to other depositors. The attack ` +
-      `was reproduced on a copy of the chain at block ${checker.forkBlock}.`,
+      `was reproduced on ${where}.`,
     steps: [
       "A brand new account was created with no deposits and no special permissions.",
       "The account called the vault's withdraw path.",

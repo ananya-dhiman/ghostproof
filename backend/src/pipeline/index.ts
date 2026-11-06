@@ -6,7 +6,7 @@
  * is how you get a timeout on stage. Submissions queue instead.
  */
 import { runChecker } from "../checker/index.js";
-import { cannedReport } from "../ai/fallback.js";
+import { generateReport } from "../ai/report.js";
 import { env } from "../env.js";
 import * as store from "../store.js";
 import type { ArkivRecord, SubmissionMetadata } from "../types.js";
@@ -62,10 +62,10 @@ async function run(
   store.setChecker(reportId, outcome.checker);
   store.setStatus(reportId, "verified");
 
-  // Step 10: evidence report. B5 swaps the canned report for the live AI call;
-  // the fallback is always available so the pipeline never hangs on a model.
-  // TODO(B5): live Anthropic call with a timeout, falling back to this.
-  store.setEvidence(reportId, cannedReport(outcome.checker));
+  // Step 10: evidence report — one grounded Claude call (claude-haiku-5-5),
+  // falling back to the canned report on any failure or timeout so the pipeline
+  // never hangs on a model.
+  store.setEvidence(reportId, await generateReport(outcome.checker, exploitSource));
 
   // Step 11: payout. B4 calls the BountyPool settler here when a rule broke.
   // TODO(B4): settleReport(hacker, severity) on A's BountyPool, wait for receipt.
