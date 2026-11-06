@@ -12,6 +12,15 @@ root `CLAUDE.md`; shared interfaces are in `new_PLAN.md`.
 - **We consume:** A's ABIs (`/shared/abis/`) and addresses (`/shared/config.ts`).
   Read them, never edit them.
 
+## Keep STATUS.md current
+
+- `backend/STATUS.md` is the living progress doc other teammates' Claude read to
+  coordinate. **Update it in the same commit as any push to `b-backend`** that
+  changes what the backend provides: move items between the Done / Not-done
+  lists, refresh the "Last updated" line to the new commit, and add a Changelog
+  entry. If a shared interface or an A/C action item changed, update those
+  sections too. Never let a push land without STATUS.md reflecting it.
+
 ## Backend-specific rules
 
 - **Everything lives under `/backend`.** Own `package.json`, own `tsconfig.json`,
