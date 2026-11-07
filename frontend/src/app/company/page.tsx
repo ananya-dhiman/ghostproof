@@ -272,6 +272,27 @@ function ReportDetail({ env, pool, demo }: { env: ReportEnvelope; pool: Pool; de
               numbers. Nothing here was written by a model.
             </span>
           </details>
+
+          {/* The re-runnable proof. A company should not have to trust our summary:
+              here is the submission, the exact test, and forge's own output. */}
+          {env.runEvidence && (
+            <details className="mono" style={{ fontSize: "0.72rem", marginTop: 4 }}>
+              <summary style={{ cursor: "pointer" }}>
+                Proof — the test we ran, and forge&apos;s own output
+              </summary>
+
+              <Proof title="How to reproduce this yourself" body={env.runEvidence.howToReproduce} />
+              <Proof title="The submission that was run" body={env.runEvidence.exploitSource} />
+              <Proof
+                title="The harness that measured it (generated, not written by hand)"
+                body={env.runEvidence.harness}
+              />
+              <Proof
+                title="forge output — raw EVM logs, including the ERC-20 Transfer that moved the money"
+                body={env.runEvidence.forgeLog}
+              />
+            </details>
+          )}
         </div>
       </div>
 
@@ -329,6 +350,29 @@ function ReportDetail({ env, pool, demo }: { env: ReportEnvelope; pool: Pool; de
           }}
         />
       )}
+    </div>
+  );
+}
+
+/** One block of machine evidence: a label and a scrollable, copyable code dump. */
+function Proof({ title, body }: { title: string; body: string }) {
+  if (!body) return null;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div className="stat-label" style={{ marginBottom: 4 }}>{title}</div>
+      <pre
+        style={{
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-all",
+          margin: 0,
+          padding: 10,
+          border: "1px solid var(--ink)",
+          maxHeight: 220,
+          overflow: "auto",
+        }}
+      >
+        {body}
+      </pre>
     </div>
   );
 }
