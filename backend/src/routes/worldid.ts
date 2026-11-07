@@ -1,75 +1,107 @@
 /**
- * POST /verify-human — World ID proof verification.
+ * World ID routes (IDKit 4.x).
  *
- * Verification happens HERE, never in the browser: a client-side check proves
- * nothing, since anyone can call our API directly. Person C owns the IDKit
- * widget and forwards us what it produces.
+ *   POST /world/rp-context  -> an rp_context signed with our Developer Portal
+ *                              signing key, for one verification attempt.
+ *   POST /verify-human      -> verify the IDKit result against World ID and
+ *                              remember the nullifier.
  *
- * Until B7 wires `verifyCloudProof` up, this accepts the proof and records the
- * nullifier so the submission flow is testable end to end. It reports
- * `verified: true` only once the real check is in place — with no WORLD_APP_ID
- * configured it says so plainly rather than pretending.
+ * The browser never verifies and never sees the signing key. When World ID is
+ * unconfigured we say so honestly and record the nullifier anyway, so the rest
+ * of the submission flow stays testable (the UI labels that case as simulated).
  */
 import { Router } from "express";
 import { env } from "../env.js";
 import * as store from "../store.js";
-import type { WorldIdProofRequest, WorldIdVerifyResponse } from "../types.js";
-import { verifyWorldIdProof } from "../worldid/verify.js";
+import { signRpContext, verifyWorldIdProof, worldIdConfigured } from "../worldid/verify.js";
+import type { WorldIdVerifyResponse } from "../types.js";
 
 export const worldIdRouter: Router = Router();
 
-worldIdRouter.post("/verify-human", async (req, res) => {
-  const body = req.body as Partial<WorldIdProofRequest> | undefined;
-  const nullifier = body?.nullifier_hash;
-
-  if (typeof nullifier !== "string" || !nullifier) {
-    res.status(400).json({ error: "nullifier_hash is required" });
+worldIdRouter.post("/world/rp-context", async (req, res) => {
+  if (!worldIdConfigured()) {
+    res.status(503).json({
+      error:
+        "World ID is not configured on this server (needs WORLD_APP_ID, WORLD_RP_ID and WORLD_RP_SIGNING_KEY)",
+    });
     return;
   }
 
-  if (!env.worldAppId) {
-    // Not configured yet: be honest rather than returning a fake pass. We still
-    // record the nullifier so the submission flow is testable before the App ID
-    // is set — real verification turns on the moment WORLD_APP_ID lands in .env.
-    store.markNullifierVerified(nullifier);
+  const action =
+    typeof (req.body as { action?: unknown })?.action === "string" &&
+    (req.body as { action: string }).action
+      ? (req.body as { action: string }).action
+      : env.worldActionId;
+
+  try {
+    res.json(await signRpContext(action));
+  } catch (err) {
+    console.error("[worldid] could not sign rp_context:", err);
+    res.status(500).json({
+      error: err instanceof Error ? err.message : "could not sign the request",
+    });
+  }
+});
+
+worldIdRouter.post("/verify-human", async (req, res) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+
+  // IDKit 4.x hands us a whole result object; accept it directly or wrapped.
+  const idkitResponse = (
+    typeof body.idkitResponse === "object" && body.idkitResponse
+      ? body.idkitResponse
+      : body
+  ) as Record<string, unknown>;
+
+  if (!worldIdConfigured()) {
+    // Not configured: be honest rather than faking a pass, but still record the
+    // nullifier so one-submission-per-person is demonstrable.
+    const fallback =
+      typeof idkitResponse.nullifier === "string"
+        ? idkitResponse.nullifier
+        : typeof body.nullifier_hash === "string"
+          ? body.nullifier_hash
+          : "";
+    if (!fallback) {
+      res.status(400).json({ error: "a nullifier is required" });
+      return;
+    }
+    store.markNullifierVerified(fallback);
     const payload: WorldIdVerifyResponse = {
       verified: false,
-      nullifierHash: nullifier,
-      alreadyUsed: store.isNullifierSpent(nullifier),
-      error: "World ID is not configured on this server yet (set WORLD_APP_ID)",
+      nullifierHash: fallback,
+      alreadyUsed: store.isNullifierSpent(fallback),
+      error:
+        "World ID is not configured on this server yet (set WORLD_RP_ID and WORLD_RP_SIGNING_KEY)",
     };
     res.json(payload);
     return;
   }
 
-  // Need the full proof to verify against World ID's cloud endpoint.
-  if (!body?.proof || !body.merkle_root || !body.verification_level) {
-    res.status(400).json({
-      error: "proof, merkle_root, nullifier_hash and verification_level are required",
-    });
-    return;
-  }
+  const outcome = await verifyWorldIdProof(idkitResponse);
 
-  const outcome = await verifyWorldIdProof(body as WorldIdProofRequest);
-
-  if (!outcome.success) {
+  if (!outcome.success || !outcome.nullifier) {
     const payload: WorldIdVerifyResponse = {
       verified: false,
-      nullifierHash: nullifier,
-      alreadyUsed: store.isNullifierSpent(nullifier),
+      nullifierHash:
+        typeof idkitResponse.nullifier === "string" ? idkitResponse.nullifier : "",
+      alreadyUsed: false,
       error: outcome.detail ?? outcome.code ?? "World ID verification failed",
     };
+    console.error(
+      `[worldid] verification failed: ${outcome.code ?? "?"} — ${outcome.detail ?? "?"}`,
+    );
     res.status(401).json(payload);
     return;
   }
 
-  // Real, unique human. Remember the nullifier so /submit will accept one
-  // submission from it and block any second attempt.
-  store.markNullifierVerified(nullifier);
+  // A real, unique human. Remember the nullifier so /submit accepts exactly one
+  // submission from them and blocks any second attempt.
+  store.markNullifierVerified(outcome.nullifier);
   const payload: WorldIdVerifyResponse = {
     verified: true,
-    nullifierHash: nullifier,
-    alreadyUsed: store.isNullifierSpent(nullifier),
+    nullifierHash: outcome.nullifier,
+    alreadyUsed: store.isNullifierSpent(outcome.nullifier),
   };
   res.json(payload);
 });
