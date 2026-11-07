@@ -12,6 +12,7 @@ import { findExploitContract } from "./guard.js";
 import { runForge, type ForgeOptions } from "./forge.js";
 import { parseForgeOutput, type ParsedRun } from "./parse.js";
 import { buildSandbox, type SandboxOptions } from "./sandbox.js";
+import { buildReplay } from "./replay.js";
 
 export interface CheckerOutcome {
   checker: CheckerResult;
@@ -27,37 +28,10 @@ export interface CheckerOutcome {
 
 const FORGE_LOG_LIMIT = 24_000;
 
-function buildRunEvidence(
-  harness: string,
-  exploitSource: string,
-  stdout: string,
-  stderr: string,
-  forkBlock: number,
-): RunEvidence {
+function truncate(stdout: string, stderr: string): string {
   const combined = [stdout, stderr].filter(Boolean).join("\n");
-  const forgeLog =
-    combined.length > FORGE_LOG_LIMIT
-      ? `${combined.slice(0, FORGE_LOG_LIMIT)}\n… truncated (${combined.length} chars total)`
-      : combined;
-
-  const fork = forkBlock
-    ? `Fork Sepolia at block ${forkBlock} (the block the measurement was taken at).`
-    : `No fork was used: the harness deploys a fresh vault locally.`;
-
-  return {
-    harness,
-    exploitSource,
-    forgeLog,
-    howToReproduce: [
-      "1. Create an empty Foundry project and install forge-std.",
-      "2. Copy Person A's contracts (contracts/src) into src/.",
-      "3. Save the submission below as test/submission/Submission.sol.",
-      "4. Save the harness below as test/Harness.t.sol.",
-      `5. ${fork}`,
-      "6. Run: forge test --json -vv --match-contract Harness",
-      "The measured numbers are deterministic — the same inputs at the same block give the same result.",
-    ].join("\n"),
-  };
+  if (combined.length <= FORGE_LOG_LIMIT) return combined;
+  return `${combined.slice(0, FORGE_LOG_LIMIT)}\n… truncated (${combined.length} chars total)`;
 }
 
 /** A's Rules: 1 = Medium, 2 = High, 3 = Critical. */
@@ -113,13 +87,9 @@ export async function runChecker(
   let runEvidence: RunEvidence | null = null;
   try {
     const run = await runForge(sandbox.dir, forgeOpts);
-    runEvidence = buildRunEvidence(
-      sandbox.harness,
-      exploitSource,
-      run.stdout,
-      run.stderr,
-      forkBlock,
-    );
+    const forgeLog = truncate(run.stdout, run.stderr);
+    // Evidence exists even if the run failed: the compiler error is evidence too.
+    runEvidence = { forkBlock, replay: [], forgeLog };
     if (run.timedOut) {
       return {
         checker: blankResult(reportId, exploitHash),
@@ -128,6 +98,17 @@ export async function runChecker(
       };
     }
     parsed = parseForgeOutput(run.stdout, run.stderr);
+    // Decode what the EVM actually emitted into an ordered replay.
+    runEvidence = {
+      forkBlock: parsed.forkBlockNumber || forkBlock,
+      replay: buildReplay({
+        rawLogs: parsed.rawLogs,
+        decodedLogs: parsed.decodedLogs,
+        forkBlock: parsed.forkBlockNumber || forkBlock,
+        known: { usdc: addresses.usdc, vault: addresses.vault },
+      }),
+      forgeLog,
+    };
   } finally {
     await sandbox.cleanup();
   }

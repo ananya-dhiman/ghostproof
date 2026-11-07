@@ -130,21 +130,30 @@ export interface ReportEnvelope {
 }
 
 /**
- * Re-runnable proof of the measurement, added by Person B.
+ * One decoded step of what actually happened during the run, in execution order.
+ * Decoded from the EVM logs the run emitted — not narration.
+ */
+export interface ReplayStep {
+  seq: number;
+  /** event = emitted by a contract; measure/rule = logged by the harness. */
+  kind: "event" | "measure" | "rule" | "note";
+  title: string;
+  detail: string;
+}
+
+/**
+ * The machine evidence for a run, added by Person B.
  *
- * The AI's `EvidenceReport` is prose. This is the machine evidence: the exact
- * Foundry test that produced the numbers, the submission it ran, and forge's own
- * output. A company should not have to trust our summary — it can re-run this.
+ * The AI EvidenceReport is prose. This is what the chain actually did: a
+ * chronological replay decoded from the run, plus forge own raw output.
  */
 export interface RunEvidence {
-  /** The generated Foundry harness that measured the attack. */
-  harness: string;
-  /** The submitted exploit, verbatim. */
-  exploitSource: string;
-  /** forge's own output (`forge test --json -vv`), truncated if very long. */
+  /** Sepolia block the run forked, or 0 for a self-contained run. */
+  forkBlock: number;
+  /** What happened, step by step, decoded from the EVM logs. */
+  replay: ReplayStep[];
+  /** forge raw output, kept so nothing is hidden. */
   forgeLog: string;
-  /** Plain-language steps to reproduce the run independently. */
-  howToReproduce: string;
 }
 
 /** POST /verify-human — the payload IDKit hands the frontend, forwarded to us. */
