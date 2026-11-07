@@ -79,9 +79,6 @@ function Company() {
 
   // The company only ever sees reports that actually broke one of its rules.
   const incoming = useMemo(() => (reports ?? []).filter((r) => r.checker?.ruleBroken), [reports]);
-  useEffect(() => {
-    if (!selected && incoming[0]) setSelected(incoming[0].reportId);
-  }, [incoming, selected]);
   const current = incoming.find((r) => r.reportId === selected) ?? null;
 
   return (
@@ -137,8 +134,15 @@ function Company() {
         <h2>Incoming reports</h2>
         <span className="muted">Only reports that broke a rule show up here.</span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 340px) minmax(0, 1fr)", gap: 28, alignItems: "start" }} className="reports-grid">
-        <div className="stack" style={{ gap: 14 }}>
+      {current ? (
+        <div className="stack" style={{ gap: 20 }}>
+          <button className="btn small raised" onClick={() => setSelected(null)}>
+            &larr; All reports
+          </button>
+          <ReportDetail env={current} pool={pool} demo={demo.on} />
+        </div>
+      ) : (
+        <div className="grid-2" style={{ gap: 16, alignItems: "start" }}>
           {reports === null && (
             <div className="card row">
               <Ghost variant="detective" size={70} />
@@ -175,20 +179,7 @@ function Company() {
             </button>
           ))}
         </div>
-
-        <div>
-          {current ? (
-            <ReportDetail env={current} pool={pool} demo={demo.on} />
-          ) : (
-            reports !== null && incoming.length > 0 && (
-              <div className="card row">
-                <Ghost variant="detective" size={80} />
-                <span>Pick a report to read it.</span>
-              </div>
-            )
-          )}
-        </div>
-      </div>
+      )}
 
       <div style={{ marginTop: 40 }}>
         <SealedNote />

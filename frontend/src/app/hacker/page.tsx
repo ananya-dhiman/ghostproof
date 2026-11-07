@@ -8,7 +8,7 @@ import { Ghost, Boo } from "@/components/Ghost";
 import { ConnectButton } from "@/components/ConnectButton";
 import { WorldIdGate } from "@/components/WorldIdGate";
 import { DemoFlag, SealedNote, SeverityTag } from "@/components/Bits";
-import { fetchHealth, fetchReport, submitExploit } from "@/lib/api";
+import { fetchHealth, fetchReport, fetchReports, submitExploit } from "@/lib/api";
 import { DEMO_EXPLOIT } from "@/lib/mock";
 import { BOUNTY, ruleName } from "@/lib/rules";
 import { sepoliaTx } from "@/lib/chain";
@@ -38,6 +38,29 @@ export default function HackerPage() {
   const [env, setEnv] = useState<ReportEnvelope | null>(null);
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Your past submissions for the connected wallet. The checker keeps reports in
+  // memory, so this resets whenever the backend restarts.
+  const [history, setHistory] = useState<ReportEnvelope[]>([]);
+
+  useEffect(() => {
+    if (!address) {
+      setHistory([]);
+      return;
+    }
+    const load = () =>
+      fetchReports()
+        .then((r) =>
+          setHistory(
+            (r.data ?? []).filter(
+              (x) => x.submission.hackerAddress?.toLowerCase() === address.toLowerCase(),
+            ),
+          ),
+        )
+        .catch(() => setHistory([]));
+    load();
+    const t = setInterval(load, 5000);
+    return () => clearInterval(t);
+  }, [address]);
   const [polling, setPolling] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -290,6 +313,34 @@ export default function HackerPage() {
               </div>
             )}
           </div>
+          {isConnected && history.length > 0 && (
+            <div className="card">
+              <div className="card-title">
+                <h3>Your submissions</h3>
+                <span className="tag flat mono">{short(address, 6, 4)}</span>
+              </div>
+              <p className="muted" style={{ fontSize: "0.85rem", marginBottom: 10 }}>
+                Everything this wallet has sent to this bounty.
+              </p>
+              <div className="stack" style={{ gap: 8 }}>
+                {history.map((h) => (
+                  <div key={h.reportId} className="row" style={{ justifyContent: "space-between", gap: 10, borderTop: "1px solid var(--ink)", paddingTop: 8 }}>
+                    <span className="mono" style={{ fontSize: "0.8rem" }}>{h.reportId}</span>
+                    <span className="row" style={{ gap: 8 }}>
+                      {h.checker?.severity && <SeverityTag severity={h.checker.severity} />}
+                      <span style={{ fontFamily: "var(--font-display)" }}>
+                        {h.payout ? "+" + usd(h.payout.paidUsdc) : "—"}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+                <div className="row" style={{ justifyContent: "space-between", borderTop: "2px solid var(--ink)", paddingTop: 8, fontFamily: "var(--font-display)" }}>
+                  <span>Earned here</span>
+                  <span>{usd(history.reduce((s, h) => s + (h.payout?.paidUsdc ?? 0), 0))}</span>
+                </div>
+              </div>
+            </div>
+          )}
           <SealedNote />
         </div>
       </div>
