@@ -121,6 +121,30 @@ export interface ReportEnvelope {
   arkiv: ArkivInfo | null;
   /** Human-readable reason for `rejected` / `error`. Safe to show the hacker. */
   error: string | null;
+  /**
+   * Machine evidence for the run: the exact test, the submission and forge's
+   * output, so the company can reproduce the measurement. Optional — absent on
+   * submissions the guard rejected before anything was compiled.
+   */
+  runEvidence?: RunEvidence | null;
+}
+
+/**
+ * Re-runnable proof of the measurement, added by Person B.
+ *
+ * The AI's `EvidenceReport` is prose. This is the machine evidence: the exact
+ * Foundry test that produced the numbers, the submission it ran, and forge's own
+ * output. A company should not have to trust our summary — it can re-run this.
+ */
+export interface RunEvidence {
+  /** The generated Foundry harness that measured the attack. */
+  harness: string;
+  /** The submitted exploit, verbatim. */
+  exploitSource: string;
+  /** forge's own output (`forge test --json -vv`), truncated if very long. */
+  forgeLog: string;
+  /** Plain-language steps to reproduce the run independently. */
+  howToReproduce: string;
 }
 
 /** POST /verify-human — the payload IDKit hands the frontend, forwarded to us. */

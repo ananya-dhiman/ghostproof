@@ -5,7 +5,7 @@
  * No AI anywhere in here. The number that can trigger a payout comes only from
  * what the exploit moved on-chain and which rule the company wrote in advance.
  */
-import type { CheckerResult, SeverityName } from "../types.js";
+import type { CheckerResult, RunEvidence, SeverityName } from "../types.js";
 import { addresses, addressesDeployed, publicClient } from "../chain/clients.js";
 import { env } from "../env.js";
 import { findExploitContract } from "./guard.js";
@@ -17,6 +17,47 @@ export interface CheckerOutcome {
   checker: CheckerResult;
   /** set when verified is false: why we could not confirm a finding */
   error: string | null;
+  /**
+   * The re-runnable proof: the generated test, the submission, and forge's own
+   * output. Present whenever we got as far as running forge — including a
+   * compile failure, where the compiler error is itself the evidence.
+   */
+  runEvidence?: RunEvidence | null;
+}
+
+const FORGE_LOG_LIMIT = 24_000;
+
+function buildRunEvidence(
+  harness: string,
+  exploitSource: string,
+  stdout: string,
+  stderr: string,
+  forkBlock: number,
+): RunEvidence {
+  const combined = [stdout, stderr].filter(Boolean).join("\n");
+  const forgeLog =
+    combined.length > FORGE_LOG_LIMIT
+      ? `${combined.slice(0, FORGE_LOG_LIMIT)}\n… truncated (${combined.length} chars total)`
+      : combined;
+
+  const fork = forkBlock
+    ? `Fork Sepolia at block ${forkBlock} (the block the measurement was taken at).`
+    : `No fork was used: the harness deploys a fresh vault locally.`;
+
+  return {
+    harness,
+    exploitSource,
+    forgeLog,
+    howToReproduce: [
+      "1. Create an empty Foundry project and install forge-std.",
+      "2. Copy Person A's contracts (contracts/src) into src/.",
+      "3. Save the submission below as test/submission/Submission.sol.",
+      "4. Save the harness below as test/Harness.t.sol.",
+      `5. ${fork}`,
+      "6. Run: forge test --json -vv --match-contract Harness",
+      "The measured numbers are deterministic — the same inputs at the same block give the same result.",
+    ].join("\n"),
+  };
 }
 
 /** A's Rules: 1 = Medium, 2 = High, 3 = Critical. */
@@ -69,12 +110,21 @@ export async function runChecker(
 
   const sandbox = await buildSandbox(exploitSource, contractName, sandboxOpts);
   let parsed: ParsedRun;
+  let runEvidence: RunEvidence | null = null;
   try {
     const run = await runForge(sandbox.dir, forgeOpts);
+    runEvidence = buildRunEvidence(
+      sandbox.harness,
+      exploitSource,
+      run.stdout,
+      run.stderr,
+      forkBlock,
+    );
     if (run.timedOut) {
       return {
         checker: blankResult(reportId, exploitHash),
         error: "the exploit took too long to run and was stopped",
+        runEvidence,
       };
     }
     parsed = parseForgeOutput(run.stdout, run.stderr);
@@ -86,6 +136,7 @@ export async function runChecker(
     return {
       checker: blankResult(reportId, exploitHash),
       error: parsed.error ?? "the exploit did not compile or run",
+      runEvidence,
     };
   }
 
@@ -114,6 +165,7 @@ export async function runChecker(
       reportId,
     },
     error: null,
+    runEvidence,
   };
 }
 

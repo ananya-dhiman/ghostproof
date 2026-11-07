@@ -23,6 +23,12 @@ const FORGE_STD_SRC = path.join(TEMPLATE_DIR, "lib", "forge-std", "src");
 
 export interface Sandbox {
   dir: string;
+  /**
+   * The generated harness source. Kept so the company can be handed the exact
+   * test that produced the numbers and re-run it themselves — the measurement
+   * is only credible if it is reproducible.
+   */
+  harness: string;
   cleanup: () => Promise<void>;
 }
 
@@ -168,6 +174,7 @@ export async function buildSandbox(
   }
 
   const dir = await mkdtemp(path.join(os.tmpdir(), "gp-run-"));
+  let harnessSrc = "";
   try {
     await cp(path.join(TEMPLATE_DIR, "src"), path.join(dir, "src"), {
       recursive: true,
@@ -178,7 +185,7 @@ export async function buildSandbox(
       path.join(dir, "test", "submission", "Submission.sol"),
       exploitSource,
     );
-    const harnessSrc = opts.fork
+    harnessSrc = opts.fork
       ? forkHarness(contractName, opts.fork.usdc, opts.fork.vault)
       : harness(contractName);
     await writeFile(path.join(dir, "test", "Harness.t.sol"), harnessSrc);
@@ -186,5 +193,9 @@ export async function buildSandbox(
     await rm(dir, { recursive: true, force: true });
     throw err;
   }
-  return { dir, cleanup: () => rm(dir, { recursive: true, force: true }) };
+  return {
+    dir,
+    harness: harnessSrc,
+    cleanup: () => rm(dir, { recursive: true, force: true }),
+  };
 }

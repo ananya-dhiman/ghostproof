@@ -14,6 +14,7 @@ import type {
   PayoutInfo,
   ArkivInfo,
   ReportEnvelope,
+  RunEvidence,
   ReportStatus,
   SubmissionMetadata,
 } from "./types.js";
@@ -71,6 +72,12 @@ export function setStatus(reportId: string, status: ReportStatus, error?: string
   if (!r) return;
   r.status = status;
   if (error !== undefined) r.error = error;
+}
+
+export function setRunEvidence(reportId: string, evidence: RunEvidence): void {
+  const r = reports.get(reportId);
+  if (!r) return;
+  r.runEvidence = evidence;
 }
 
 export function setChecker(reportId: string, checker: CheckerResult): void {
