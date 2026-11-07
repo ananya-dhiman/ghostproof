@@ -275,23 +275,50 @@ function ReportDetail({ env, pool, demo }: { env: ReportEnvelope; pool: Pool; de
 
           {/* The re-runnable proof. A company should not have to trust our summary:
               here is the submission, the exact test, and forge's own output. */}
-          {env.runEvidence && (
-            <details className="mono" style={{ fontSize: "0.72rem", marginTop: 4 }}>
-              <summary style={{ cursor: "pointer" }}>
-                Proof — the test we ran, and forge&apos;s own output
-              </summary>
+          {env.runEvidence && env.runEvidence.replay.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div className="stat-label" style={{ marginBottom: 2 }}>
+                Replay — what the chain actually did, in order
+              </div>
+              <div className="mono" style={{ fontSize: "0.72rem", opacity: 0.8, marginBottom: 8 }}>
+                Decoded from the events the run emitted. Not a description of it.
+              </div>
 
-              <Proof title="How to reproduce this yourself" body={env.runEvidence.howToReproduce} />
-              <Proof title="The submission that was run" body={env.runEvidence.exploitSource} />
-              <Proof
-                title="The harness that measured it (generated, not written by hand)"
-                body={env.runEvidence.harness}
-              />
-              <Proof
-                title="forge output — raw EVM logs, including the ERC-20 Transfer that moved the money"
-                body={env.runEvidence.forgeLog}
-              />
-            </details>
+              <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {env.runEvidence.replay.map((s) => (
+                  <li
+                    key={s.seq}
+                    className="row"
+                    style={{
+                      alignItems: "flex-start",
+                      gap: 10,
+                      padding: "8px 10px",
+                      borderLeft: "3px solid var(--ink)",
+                      marginBottom: 6,
+                      background: "var(--raised)",
+                    }}
+                  >
+                    <span className="mono" style={{ fontSize: "0.72rem", opacity: 0.7, minWidth: 18 }}>
+                      {s.seq}
+                    </span>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ display: "block", fontWeight: 600 }}>{s.title}</span>
+                      <span className="mono" style={{ fontSize: "0.72rem", opacity: 0.85 }}>
+                        {s.detail}
+                      </span>
+                    </span>
+                    <span className={`tag ${s.kind === "rule" ? "accent" : "flat"}`} style={{ fontSize: "0.65rem" }}>
+                      {s.kind === "event" ? "on-chain event" : s.kind}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+
+              <details className="mono" style={{ fontSize: "0.72rem", marginTop: 6 }}>
+                <summary style={{ cursor: "pointer" }}>forge&apos;s raw output (nothing hidden)</summary>
+                <Proof title="" body={env.runEvidence.forgeLog} />
+              </details>
+            </div>
           )}
         </div>
       </div>
@@ -359,7 +386,7 @@ function Proof({ title, body }: { title: string; body: string }) {
   if (!body) return null;
   return (
     <div style={{ marginTop: 10 }}>
-      <div className="stat-label" style={{ marginBottom: 4 }}>{title}</div>
+      {title ? <div className="stat-label" style={{ marginBottom: 4 }}>{title}</div> : null}
       <pre
         style={{
           whiteSpace: "pre-wrap",
