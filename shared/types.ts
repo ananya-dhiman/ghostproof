@@ -121,6 +121,39 @@ export interface ReportEnvelope {
   arkiv: ArkivInfo | null;
   /** Human-readable reason for `rejected` / `error`. Safe to show the hacker. */
   error: string | null;
+  /**
+   * Machine evidence for the run: the exact test, the submission and forge's
+   * output, so the company can reproduce the measurement. Optional — absent on
+   * submissions the guard rejected before anything was compiled.
+   */
+  runEvidence?: RunEvidence | null;
+}
+
+/**
+ * One decoded step of what actually happened during the run, in execution order.
+ * Decoded from the EVM logs the run emitted — not narration.
+ */
+export interface ReplayStep {
+  seq: number;
+  /** event = emitted by a contract; measure/rule = logged by the harness. */
+  kind: "event" | "measure" | "rule" | "note";
+  title: string;
+  detail: string;
+}
+
+/**
+ * The machine evidence for a run, added by Person B.
+ *
+ * The AI EvidenceReport is prose. This is what the chain actually did: a
+ * chronological replay decoded from the run, plus forge own raw output.
+ */
+export interface RunEvidence {
+  /** Sepolia block the run forked, or 0 for a self-contained run. */
+  forkBlock: number;
+  /** What happened, step by step, decoded from the EVM logs. */
+  replay: ReplayStep[];
+  /** forge raw output, kept so nothing is hidden. */
+  forgeLog: string;
 }
 
 /** POST /verify-human — the payload IDKit hands the frontend, forwarded to us. */

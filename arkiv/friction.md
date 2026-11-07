@@ -31,11 +31,10 @@ Neither alone is enough. Compared with the rest of our stack — where one funde
 story — this is two gates before you can see anything work, and it was the single biggest reason
 our Arkiv path was the last thing to come alive.
 
-**Consequence, stated plainly:** at the time of writing, our Arkiv writer is **code-complete but
-not verified against the live rabdi testnet**, because we did not get the access key and faucet
-funds in place before the deadline. Everything downstream of it (the mirror, `/records`, the
-public page) is verified; the actual `createEntity` call is not. `npm run arkiv-smoke` exists
-precisely to verify it standalone the moment the credentials land.
+**Resolved before submission.** The credentials landed and the write path is now **verified against
+the live rabdi testnet** — multiple reports have been written as real entities, and the public record
+page reads them back off Arkiv rather than from our mirror. What stands as feedback is how long the
+two-credential gate kept this the last subsystem to come alive.
 
 ---
 
@@ -69,6 +68,14 @@ attributes **and an expiry**, then reads it back by attribute. That is the actua
 real integration, and assembling it from three pages is where most of our reading time went.
 
 ---
+
+### Two things we only learned when we implemented the read
+- **`where` filters only on indexed columns.** Sensible, but it shapes the schema earlier than you
+  expect: we had already indexed `recorder`, which is what made "every record this backend wrote"
+  a cheap query. Had we not, there would have been no way to list our own records without a scan.
+- **Rows come back as `{ type, value }` wrappers**, so mapping an entity back to a plain object means
+  unwrapping every attribute. Correct and explicit, but a documented `toPlain(row)` helper would have
+  saved us writing one.
 
 ## 3. A design tension worth your attention
 

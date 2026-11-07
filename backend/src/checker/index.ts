@@ -5,18 +5,33 @@
  * No AI anywhere in here. The number that can trigger a payout comes only from
  * what the exploit moved on-chain and which rule the company wrote in advance.
  */
-import type { CheckerResult, SeverityName } from "../types.js";
+import type { CheckerResult, RunEvidence, SeverityName } from "../types.js";
 import { addresses, addressesDeployed, publicClient } from "../chain/clients.js";
 import { env } from "../env.js";
 import { findExploitContract } from "./guard.js";
 import { runForge, type ForgeOptions } from "./forge.js";
 import { parseForgeOutput, type ParsedRun } from "./parse.js";
 import { buildSandbox, type SandboxOptions } from "./sandbox.js";
+import { buildReplay } from "./replay.js";
 
 export interface CheckerOutcome {
   checker: CheckerResult;
   /** set when verified is false: why we could not confirm a finding */
   error: string | null;
+  /**
+   * The re-runnable proof: the generated test, the submission, and forge's own
+   * output. Present whenever we got as far as running forge — including a
+   * compile failure, where the compiler error is itself the evidence.
+   */
+  runEvidence?: RunEvidence | null;
+}
+
+const FORGE_LOG_LIMIT = 24_000;
+
+function truncate(stdout: string, stderr: string): string {
+  const combined = [stdout, stderr].filter(Boolean).join("\n");
+  if (combined.length <= FORGE_LOG_LIMIT) return combined;
+  return `${combined.slice(0, FORGE_LOG_LIMIT)}\n… truncated (${combined.length} chars total)`;
 }
 
 /** A's Rules: 1 = Medium, 2 = High, 3 = Critical. */
@@ -69,15 +84,31 @@ export async function runChecker(
 
   const sandbox = await buildSandbox(exploitSource, contractName, sandboxOpts);
   let parsed: ParsedRun;
+  let runEvidence: RunEvidence | null = null;
   try {
     const run = await runForge(sandbox.dir, forgeOpts);
+    const forgeLog = truncate(run.stdout, run.stderr);
+    // Evidence exists even if the run failed: the compiler error is evidence too.
+    runEvidence = { forkBlock, replay: [], forgeLog };
     if (run.timedOut) {
       return {
         checker: blankResult(reportId, exploitHash),
         error: "the exploit took too long to run and was stopped",
+        runEvidence,
       };
     }
     parsed = parseForgeOutput(run.stdout, run.stderr);
+    // Decode what the EVM actually emitted into an ordered replay.
+    runEvidence = {
+      forkBlock: parsed.forkBlockNumber || forkBlock,
+      replay: buildReplay({
+        rawLogs: parsed.rawLogs,
+        decodedLogs: parsed.decodedLogs,
+        forkBlock: parsed.forkBlockNumber || forkBlock,
+        known: { usdc: addresses.usdc, vault: addresses.vault },
+      }),
+      forgeLog,
+    };
   } finally {
     await sandbox.cleanup();
   }
@@ -86,6 +117,7 @@ export async function runChecker(
     return {
       checker: blankResult(reportId, exploitHash),
       error: parsed.error ?? "the exploit did not compile or run",
+      runEvidence,
     };
   }
 
@@ -114,6 +146,7 @@ export async function runChecker(
       reportId,
     },
     error: null,
+    runEvidence,
   };
 }
 

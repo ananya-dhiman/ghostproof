@@ -1,18 +1,27 @@
 /**
  * GET /records — the public track record.
  *
- * The source of truth is Arkiv (interface #5). Until B6 wires the SDK up, and
- * as a fallback if the Arkiv RPC is unreachable during judging, this serves the
- * local mirror of everything we wrote. The shape is identical either way, so
- * the public record page never has to care which one it got.
+ * Arkiv is the source of truth (interface #5), so we read it directly: the whole
+ * argument in /arkiv/why-arkiv.md is that this record does NOT live in our own
+ * database, and serving it from our mirror would quietly contradict that.
+ *
+ * The local mirror remains the fallback. If Arkiv is unconfigured, unreachable,
+ * or has nothing yet, the page still renders — and `source` says which one you
+ * are looking at, so the demo never overstates where the data came from.
  */
 import { Router } from "express";
 import * as store from "../store.js";
+import { readArkivRecords } from "../arkiv/client.js";
 
 export const recordsRouter: Router = Router();
 
 recordsRouter.get("/records", async (_req, res) => {
-  // TODO(B6): read from Arkiv first, fall back to the mirror on failure.
-  const records = store.listArkivMirror();
-  res.json({ source: "mirror" as const, records });
+  const fromArkiv = await readArkivRecords();
+
+  if (fromArkiv && fromArkiv.length > 0) {
+    res.json({ source: "arkiv" as const, records: fromArkiv });
+    return;
+  }
+
+  res.json({ source: "mirror" as const, records: store.listArkivMirror() });
 });

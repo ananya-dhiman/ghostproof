@@ -6,6 +6,8 @@
  *   GP_NOTHEFT <0|1> <severity 1..3>  the mandatory no-theft rule
  *   GP_ACCT    <0|1> <severity 1..3>  the accounting rule
  */
+import type { RawLog } from "./replay.js";
+
 export interface ParsedRun {
   compiled: boolean;
   ran: boolean;
@@ -15,6 +17,12 @@ export interface ParsedRun {
     noTheft: { broken: boolean; severity: number };
     accounting: { broken: boolean; severity: number };
   };
+  /** raw EVM logs the run emitted, in execution order */
+  rawLogs: RawLog[];
+  /** forge-decoded console lines, in order */
+  decodedLogs: string[];
+  /** block the run forked, as forge reported it */
+  forkBlockNumber: number;
   /** compiler / runtime error text, safe to show the submitter */
   error: string | null;
 }
@@ -22,6 +30,8 @@ export interface ParsedRun {
 interface ForgeJsonTest {
   status?: string;
   decoded_logs?: string[];
+  logs?: RawLog[];
+  fork_block_number?: number;
 }
 interface ForgeJsonSuite {
   test_results?: Record<string, ForgeJsonTest>;
@@ -43,6 +53,9 @@ export function parseForgeOutput(stdout: string, stderr: string): ParsedRun {
     compiled: false,
     ran: false,
     movedRaw: 0n,
+    rawLogs: [],
+    decodedLogs: [],
+    forkBlockNumber: 0,
     rules: {
       noTheft: { broken: false, severity: 3 },
       accounting: { broken: false, severity: 1 },
@@ -80,6 +93,9 @@ export function parseForgeOutput(stdout: string, stderr: string): ParsedRun {
     return {
       compiled: true,
       ran: true,
+      rawLogs: test.logs ?? [],
+      decodedLogs: logs,
+      forkBlockNumber: Number(test.fork_block_number ?? 0),
       movedRaw: moved.length ? BigInt(moved[0]!) : 0n,
       rules: {
         noTheft: {

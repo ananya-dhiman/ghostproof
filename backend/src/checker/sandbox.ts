@@ -15,6 +15,7 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensureForgeStd } from "../../scripts/setup-sandbox.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const TEMPLATE_DIR = path.resolve(here, "../../sandbox-template");
@@ -22,6 +23,12 @@ const FORGE_STD_SRC = path.join(TEMPLATE_DIR, "lib", "forge-std", "src");
 
 export interface Sandbox {
   dir: string;
+  /**
+   * The generated harness source. Kept so the company can be handed the exact
+   * test that produced the numbers and re-run it themselves — the measurement
+   * is only credible if it is reproducible.
+   */
+  harness: string;
   cleanup: () => Promise<void>;
 }
 
@@ -155,7 +162,19 @@ export async function buildSandbox(
   contractName: string,
   opts: SandboxOptions = {},
 ): Promise<Sandbox> {
+  // forge-std is gitignored, so a fresh clone has none and every submission would
+  // fail with a confusing solc "Source not found" error. Install it on first use
+  // (postinstall normally does it) and fail loudly and usefully if we cannot.
+  if (!(await ensureForgeStd())) {
+    throw new Error(
+      "checker sandbox is not set up: forge-std is missing from backend/sandbox-template/lib. " +
+        "Run `npm run setup-sandbox` in backend/, or " +
+        "`cd backend/sandbox-template && forge install foundry-rs/forge-std`.",
+    );
+  }
+
   const dir = await mkdtemp(path.join(os.tmpdir(), "gp-run-"));
+  let harnessSrc = "";
   try {
     await cp(path.join(TEMPLATE_DIR, "src"), path.join(dir, "src"), {
       recursive: true,
@@ -166,7 +185,7 @@ export async function buildSandbox(
       path.join(dir, "test", "submission", "Submission.sol"),
       exploitSource,
     );
-    const harnessSrc = opts.fork
+    harnessSrc = opts.fork
       ? forkHarness(contractName, opts.fork.usdc, opts.fork.vault)
       : harness(contractName);
     await writeFile(path.join(dir, "test", "Harness.t.sol"), harnessSrc);
@@ -174,5 +193,9 @@ export async function buildSandbox(
     await rm(dir, { recursive: true, force: true });
     throw err;
   }
-  return { dir, cleanup: () => rm(dir, { recursive: true, force: true }) };
+  return {
+    dir,
+    harness: harnessSrc,
+    cleanup: () => rm(dir, { recursive: true, force: true }),
+  };
 }

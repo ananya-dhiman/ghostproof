@@ -52,6 +52,13 @@ export const env = {
 
   worldAppId: str("WORLD_APP_ID"),
   worldActionId: str("WORLD_ACTION_ID", "verify-human"),
+  // IDKit 4.x: a request carries an rp_context that WE sign with the Developer
+  // Portal signing key, and proofs verify against /api/v4/verify/{rp_id}.
+  // The signing key never leaves the backend.
+  worldRpId: str("WORLD_RP_ID"),
+  worldRpSigningKey: str("WORLD_RP_SIGNING_KEY"),
+  /** "production" for the real World App; "staging" only for the simulator. */
+  worldEnvironment: str("WORLD_ENVIRONMENT", "production"),
 
   // Arkiv testnet "rabdi". The SDK's rabdi() chain knows its own RPC; it needs
   // an access key (public RPC is heavily rate-limited) plus a funded key.
@@ -70,7 +77,7 @@ export function configuredSubsystems() {
     ai: Boolean(env.openRouterApiKey),
     // The access key is optional (rate-limit relief); a funded key is enough.
     arkiv: Boolean(env.arkivPrivateKey),
-    worldId: Boolean(env.worldAppId),
+    worldId: Boolean(env.worldAppId && env.worldRpId && env.worldRpSigningKey),
     payoutWallet: Boolean(env.backendPrivateKey),
   };
 }

@@ -104,5 +104,6 @@ Arkiv and not Postgres".
 - **Bugs that break no written rule** get no automatic payment. Logic bugs that do not move money
   still need a human, and our honest claim is a smaller guaranteed floor, not a replacement for
   judgement.
-- **At the time of writing the Arkiv write path is code-complete but not verified live** (see
-  `friction.md`) — the access key and faucet funds did not land before the deadline.
+- **The Arkiv integration is verified live** — reports are written as real entities on rabdi and the
+  public record page reads them back from Arkiv. What is still thin is the *volume*: one company and
+  a handful of reports, so the flywheel above is argued, not yet observed.

@@ -55,6 +55,7 @@ async function run(
   // Step 1-9: run the exploit on the sandbox, measure it, apply the rules.
   console.log(`[pipeline] ${reportId} running checker`);
   const outcome = await runChecker(reportId, exploitSource, exploitHash);
+  if (outcome.runEvidence) store.setRunEvidence(reportId, outcome.runEvidence);
 
   if (!outcome.checker.verified) {
     // Did not compile / run / timed out — the company never sees it.
