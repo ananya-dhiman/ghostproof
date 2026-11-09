@@ -5,7 +5,7 @@ read this first when you pull or reference this branch — it tells you what the
 backend already provides, what it still needs from you, and the exact shapes you
 integrate against. It is updated on every push to `b-backend`.
 
-- **Last updated:** merged A's Sepolia deploy; **B4 payout VERIFIED LIVE on Sepolia** (50 USDC paid on-chain). See changelog.
+- **Last updated:** hosting added — Docker image + Render blueprint + `backend/DEPLOY.md`. See changelog.
 - **Owner:** Person B (checker + backend), Node/TypeScript, folder `/backend`
 - **Run it:** `cd backend && npm run dev` (needs Node 22 on PATH only for B6/Arkiv;
   Node 20 runs everything else). `MOCK_PIPELINE=true` (default) serves realistic
@@ -140,6 +140,7 @@ integrate against. It is updated on every push to `b-backend`.
 
 ## Changelog
 
+- **deploy** — `backend/Dockerfile` (node:22 + Foundry, non-root, solc warmed at build), root `render.yaml` blueprint (one Docker web service, `/health` check, all secrets `sync: false`), `.dockerignore`, and `backend/DEPLOY.md`. **C:** once the Render URL exists, set `NEXT_PUBLIC_BACKEND_URL` to it in Vercel, and tell B your Vercel URL so it goes into `CORS_ORIGINS`. Vercel needs Root Directory `frontend` **plus** "Include source files outside of the Root Directory in the Build Step", or `@shared/*` will not resolve.
 - **openrouter-live** — report verified LIVE via OpenRouter `auto-free` routing (picks among current free models, 3-item fallback).
 - **openrouter** — swapped the report provider to OpenRouter (free models, OpenAI-compatible); removed @google/genai.
 - **e2e** — full live money path verified on Sepolia (checker fork block 12078095 → 1000 USDC theft → 50 USDC paid on-chain → public record); B6 Arkiv verified live; payout now checks receipt status; Gemini model → gemini-3.8-flash; added `ai-smoke`.

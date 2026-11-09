@@ -1,0 +1,22 @@
+# Docker build context is the repo root (see backend/Dockerfile).
+# Keep the context small, and keep secrets out of the image.
+
+**/node_modules
+**/.env
+**/.env.local
+.git
+.github
+
+# Build output and caches — rebuilt inside the image.
+**/out
+**/cache
+**/.next
+backend/sandbox-template/lib
+contracts/out
+contracts/cache
+
+# Nothing the backend needs at runtime.
+frontend
+arkiv
+**/*.md
+!backend/README.md

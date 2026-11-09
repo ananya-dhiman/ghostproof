@@ -1,0 +1,67 @@
+# Render blueprint for the Ghostproof checker backend.
+#
+# Render needs this file at the repo root. The frontend is NOT here — it goes on
+# Vercel (root directory: frontend). See backend/DEPLOY.md for the walkthrough.
+#
+# Anything marked `sync: false` is a secret: Render asks for it in the dashboard
+# and never stores it in git. Do not put real values in this file.
+
+services:
+  - type: web
+    name: ghostproof-backend
+    runtime: docker
+    repo: https://github.com/ananya-dhiman/ghostproof
+    branch: main
+    region: singapore
+    # NOTE: free = 0.1 CPU / 512 MB, and it sleeps after 15 minutes idle.
+    # A forked `forge test` is a heavy, CPU-bound job. If the first real
+    # submission times out, change this to `starter` ($7/mo, 0.5 CPU) and
+    # redeploy — that is the single most likely thing to need changing.
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    # Build context is the repo root: the backend imports from shared/.
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      # --- checker behaviour in a container ---
+      # Real pipeline, not the simulated one.
+      - key: MOCK_PIPELINE
+        value: "false"
+      # Skip the local anvil hop and let forge fork Sepolia directly: fewer
+      # moving parts and less memory on a small instance.
+      - key: USE_ANVIL
+        value: "false"
+      # A shared-CPU instance compiles and forks far slower than a laptop.
+      - key: FORGE_TIMEOUT_MS
+        value: "240000"
+      - key: FORGE_BIN
+        value: /home/app/.foundry/bin/forge
+
+      # --- secrets and per-deploy values, entered in the dashboard ---
+      # Must include the Vercel frontend URL, or the browser calls are blocked.
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SEPOLIA_RPC_URL
+        sync: false
+      - key: BACKEND_PRIVATE_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: auto-free
+      - key: WORLD_APP_ID
+        sync: false
+      - key: WORLD_ACTION_ID
+        value: verify-human
+      - key: WORLD_RP_ID
+        sync: false
+      - key: WORLD_RP_SIGNING_KEY
+        sync: false
+      - key: WORLD_ENVIRONMENT
+        value: production
+      - key: ARKIV_ACCESS_KEY
+        sync: false
+      - key: ARKIV_PRIVATE_KEY
+        sync: false
+      - key: ARKIV_EXPIRES_IN
+        value: "604800"
