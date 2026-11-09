@@ -12,11 +12,11 @@
     "@tanstack/react-query": "^5.106.1",
     "@worldcoin/idkit": "^4.6.0",
     "@worldcoin/idkit-core": "^2.1.0",
-    "next": "15.5.29",
+    "next": "^16.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "viem": "^2.57.16",
-    "wagmi": "^2.19.5"
+    "wagmi": "^3.7.11"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
